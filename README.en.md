@@ -18,6 +18,8 @@ tracked separately in [compatibility](docs/compatibility.md).
 ## Run
 
 Requires Go 1.27.2 for source builds. Releases can run without Go.
+Download the [development preview](https://github.com/CyrusAuyeung/FakeAPI/releases/tag/v0.5.0-alpha.1)
+and follow the instructions included in the extracted archive.
 
 ```sh
 go build -o bin/fakeapi ./cmd/fakeapi

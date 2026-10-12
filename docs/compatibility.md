@@ -77,3 +77,16 @@ Gemini 新式 `responseFormat.text.mimeType` 使用 `APPLICATION_JSON` 或
 1280×900 视口中检查实际主窗口、消息完成、历史重传、暂停后恢复和正文一致性；
 报告中的 rendererErrors/knownWarnings 均为空。截图和 report.json 在该运行的 Artifacts。
 配置方法与边界见 [Cherry Studio](cherry-studio.md)。
+
+开发预览验收提交 `2a257ea`（PR #2）的四套工作流均通过：
+
+- [三系统运行、升级恢复、race、fuzz、Docker 和 Linux 性能](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38271953449)。
+- [六套官方 SDK 回归](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38271953429)。
+- [五份归档及三系统解压运行](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38271953849)。
+- [Cherry UI 回归与暂停后恢复](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38271953476)。
+
+升级检查固定使用旧提交 `b94edf5`；新旧版本都保持 schema 1。
+Windows 运行验收实际调用 PowerShell 5.1，包含中文 UTF-8、数学、ASCII 和 SVG。
+Cherry 使用真实编辑器输入，确认慢流已开始、Pause 导致连接关闭，再验证新数学请求成功。
+大型字符画会让旧气泡被客户端虚拟列表移除，因此依据实际提交的 fixture 与新回复验证。
+1280×900 的恢复截图显示部分取消回复及随后 `1+1 → 2`；rendererErrors/knownWarnings 均为空。

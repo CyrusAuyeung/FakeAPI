@@ -15,6 +15,8 @@ Cherry Studio 2.1.6 Linux x64 已通过四协议流式、多轮、ASCII 正文�
 ## 快速启动
 
 源码需要 Go 1.27.2。普通部署可以使用对应平台的可执行文件。
+[下载开发预览版](https://github.com/CyrusAuyeung/FakeAPI/releases/tag/v0.5.0-alpha.1)，
+解压后按随包教程初始化、创建 Key 并启动。
 
 Windows PowerShell：
 
