@@ -185,8 +185,8 @@ try {
   await select(cases[0].providerId, 'fakeapi-frog');
   const laugh = readFileSync(path.join(process.env.FAKEAPI_TEST_ASSETS, 'nailong/laugh.txt'), 'utf8');
   const drawing = await send('/laugh', laugh, true);
-  await drawing.locator('[data-ui="part:code-block"]').last().screenshot({ path: path.join(evidence, 'ascii-laugh.png') });
   pass('ASCII material preserved exactly in the rendered code block');
+  await drawing.locator('.code-viewer').last().screenshot({ path: path.join(evidence, 'ascii-laugh.png') });
 
   await page.locator('[data-ui~="chat.composer"] [contenteditable="true"]').first().fill('/client/cancel');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
