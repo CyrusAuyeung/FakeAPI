@@ -20,6 +20,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 FLAGS = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+PRIVATE_VALUES = []
 
 
 def execute(command, env=None, timeout=60):
@@ -27,7 +28,10 @@ def execute(command, env=None, timeout=60):
                             creationflags=FLAGS, timeout=timeout)
     if result.returncode:
         # A keys-create command's output may contain a credential. Keep it private.
-        raise RuntimeError(f'command failed ({result.returncode}): {Path(command[0]).name}')
+        detail = result.stderr.decode('utf-8', errors='replace').strip()
+        for value in PRIVATE_VALUES:
+            detail = detail.replace(value, '<redacted>')
+        raise RuntimeError(f'command failed ({result.returncode}): {Path(command[0]).name}: {detail[:2000]}')
     return result.stdout.decode('utf-8')
 
 
@@ -98,7 +102,7 @@ class Container:
         runtime.mkdir()
         execute(['docker', 'run', '--rm', '--user', f'{os.getuid()}:{os.getgid()}',
                  '--mount', f'type=bind,source={runtime},target=/config', image,
-                 'init', '--template', 'testing', '--dir', '/config'], env=self.env)
+                 'init', '--template', 'testing', '--shared-config', '--dir', '/config'], env=self.env)
         override = directory / 'compose.override.yaml'
         # !override replaces the production host port instead of adding another.
         override.write_text('services:\n  fakeapi:\n    ports: !override\n'
@@ -177,6 +181,7 @@ def check(backend, passed):
         value = json.loads(backend.cli('keys', 'create', '--policy', 'test',
                                       '--format', 'json', *options))
         keys.append(value['key'])
+        PRIVATE_VALUES.append(value['key'])
         return value['key'], value['metadata']['id']
 
     def metadata(key_id, *options):

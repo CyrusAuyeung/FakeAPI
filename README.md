@@ -97,13 +97,16 @@ YAML 严格校验未知字段、重复键、引用和环境变量。路径相对
 docker compose build
 New-Item -ItemType Directory -Force .\runtime | Out-Null
 $runtimePath = (Resolve-Path .\runtime).Path
-docker run --rm --user 0:0 --mount "type=bind,source=$runtimePath,target=/config" fakeapi:local init --template preset --dir /config
+docker run --rm --user 0:0 --mount "type=bind,source=$runtimePath,target=/config" fakeapi:local init --template preset --shared-config --dir /config
 docker compose run --rm --no-deps fakeapi config check
 docker compose run --rm --no-deps fakeapi keys create --policy demo --label docker-local
 docker compose up -d
 ```
 
 默认绑定宿主机 `127.0.0.1:8787`。容器以非 root 用户运行，配置只读，SQLite 使用独立数据卷。升级保留数据卷，先备份数据库。部署流程见 [部署与升级](docs/deployment.md)。
+
+`--shared-config` 只让初始化的 YAML 和素材可被服务容器读取，文件不可由其他用户写入；
+不生成实际 Key 或数据库。普通本地 `init` 继续采用私有文件权限。
 
 ## 测试
 

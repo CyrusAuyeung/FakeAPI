@@ -119,6 +119,51 @@ func TestAssetImportThroughLinkedParent(t *testing.T) {
 	}
 }
 
+func TestInitializationAndImportPermissions(t *testing.T) {
+	for _, shared := range []bool{false, true} {
+		dir := t.TempDir()
+		args := []string{"init", "--template", "testing", "--dir", dir}
+		fileMode, directoryMode := os.FileMode(0600), os.FileMode(0700)
+		if shared {
+			args = append(args, "--shared-config")
+			fileMode, directoryMode = 0644, 0755
+		}
+		errout := new(bytes.Buffer)
+		if code := Run(args, new(bytes.Buffer), errout); code != 0 {
+			t.Fatal(errout.String())
+		}
+		configuration := filepath.Join(dir, "fakeapi.yaml")
+		c, e := config.Load(configuration, true)
+		if e != nil {
+			t.Fatal(e)
+		}
+		source := filepath.Join(dir, "custom.txt")
+		if e = os.WriteFile(source, []byte("custom material\n"), 0600); e != nil {
+			t.Fatal(e)
+		}
+		a := config.Asset{ID: "custom", Kind: "text", Author: "tester", License: "MIT", Origin: "original"}
+		if e = ImportAsset(c, source, a, false); e != nil {
+			t.Fatal(e)
+		}
+		loaded, e := config.Load(configuration, true)
+		if e != nil || loaded.AssetData["custom"].Content != "custom material\n" {
+			t.Fatalf("import after shared=%v initialization: %v", shared, e)
+		}
+		if filepath.Separator != '\\' {
+			for _, file := range []string{configuration, c.Assets.Manifest, filepath.Join(filepath.Dir(c.Assets.Manifest), "imports/custom.txt")} {
+				info, e := os.Stat(file)
+				if e != nil || info.Mode().Perm() != fileMode {
+					t.Fatalf("shared=%v file permissions: %v", shared, e)
+				}
+			}
+			info, e := os.Stat(filepath.Join(filepath.Dir(c.Assets.Manifest), "imports"))
+			if e != nil || info.Mode().Perm() != directoryMode {
+				t.Fatalf("shared=%v directory permissions: %v", shared, e)
+			}
+		}
+	}
+}
+
 func TestAssetImportRejectsEscapingImportsDirectory(t *testing.T) {
 	dir := t.TempDir()
 	if e := Init("testing", dir, new(bytes.Buffer)); e != nil {

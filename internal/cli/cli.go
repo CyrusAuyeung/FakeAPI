@@ -36,7 +36,7 @@ var Commit = "unknown"
 
 const help = `FakeAPI - configurable AI protocol simulator
 Commands:
-  init --template preset|hybrid|testing --dir PATH
+  init --template preset|hybrid|testing --dir PATH [--shared-config]
   serve --config FILE [--listen ADDR] [--state FILE]
   config check|show --config FILE [--skip-env] [--redact]
   keys create|import|list|show|revoke|update|reset-usage --config FILE
@@ -93,6 +93,7 @@ func run(args []string, out, errout io.Writer) error {
 	listen := f.String("listen", env("FAKEAPI_LISTEN", ""), "Listen override")
 	template := f.String("template", "preset", "preset, hybrid or testing")
 	dir := f.String("dir", ".", "Initialization directory")
+	sharedConfig := f.Bool("shared-config", false, "Readable configuration/assets for a separate container user; no credentials or database are created")
 	skip := f.Bool("skip-env", false, "Skip environment presence validation")
 	redact := f.Bool("redact", false, "Required for safe configuration display")
 	policyName := f.String("policy", "demo", "Key policy")
@@ -129,7 +130,7 @@ func run(args []string, out, errout io.Writer) error {
 		return fmt.Errorf("E_USAGE format")
 	}
 	if command == "init" {
-		return Init(*template, *dir, out)
+		return initDeployment(*template, *dir, *sharedConfig, out)
 	}
 	if command == "health" {
 		client := http.Client{Timeout: 3 * time.Second}
@@ -384,6 +385,13 @@ func patchPolicy(p *config.Policy, provided map[string]bool, tags, group, total,
 	return nil
 }
 func Init(template, dir string, out io.Writer) error {
+	return initDeployment(template, dir, false, out)
+}
+func initDeployment(template, dir string, shared bool, out io.Writer) error {
+	directoryMode, fileMode := os.FileMode(0700), os.FileMode(0600)
+	if shared {
+		directoryMode, fileMode = 0755, 0644
+	}
 	if template != "preset" && template != "hybrid" && template != "testing" {
 		return fmt.Errorf("E_USAGE template")
 	}
@@ -414,10 +422,10 @@ func Init(template, dir string, out io.Writer) error {
 	}
 	for name, b := range files {
 		p := filepath.Join(dir, name)
-		if e = os.MkdirAll(filepath.Dir(p), 0700); e != nil {
+		if e = os.MkdirAll(filepath.Dir(p), directoryMode); e != nil {
 			return fmt.Errorf("E_INIT_DIRECTORY")
 		}
-		if e = os.WriteFile(p, b, 0600); e != nil {
+		if e = os.WriteFile(p, b, fileMode); e != nil {
 			return fmt.Errorf("E_INIT_WRITE")
 		}
 	}
@@ -471,7 +479,19 @@ func ImportAsset(c *config.Config, source string, a config.Asset, overwrite bool
 	a.File = filepath.ToSlash(filepath.Join("imports", a.ID+".txt"))
 	base := filepath.Dir(c.Assets.Manifest)
 	target := filepath.Join(base, filepath.FromSlash(a.File))
-	if e = os.MkdirAll(filepath.Dir(target), 0700); e != nil {
+	manifestInfo, e := os.Stat(c.Assets.Manifest)
+	if e != nil {
+		return fmt.Errorf("E_ASSET_MANIFEST")
+	}
+	fileMode := manifestInfo.Mode().Perm() & 0666
+	directoryMode := os.FileMode(0700)
+	if fileMode&0040 != 0 {
+		directoryMode |= 0050
+	}
+	if fileMode&0004 != 0 {
+		directoryMode |= 0005
+	}
+	if e = os.MkdirAll(filepath.Dir(target), directoryMode); e != nil {
 		return fmt.Errorf("E_ASSET_DIRECTORY")
 	}
 	// Resolve the manifest directory too: Windows short paths and macOS /var
@@ -483,7 +503,7 @@ func ImportAsset(c *config.Config, source string, a config.Asset, overwrite bool
 	if real, e := filepath.EvalSymlinks(filepath.Dir(target)); e != nil || absolute(real) != absolute(filepath.Join(realBase, "imports")) {
 		return fmt.Errorf("E_ASSET_PATH")
 	}
-	if e = atomicWrite(target, b); e != nil {
+	if e = atomicWrite(target, b, fileMode); e != nil {
 		return e
 	}
 	if index >= 0 {
@@ -497,13 +517,24 @@ func ImportAsset(c *config.Config, source string, a config.Asset, overwrite bool
 	}
 	return atomicWrite(c.Assets.Manifest, raw)
 }
-func atomicWrite(path string, b []byte) error {
+func atomicWrite(path string, b []byte, permissions ...os.FileMode) error {
+	mode := os.FileMode(0600)
+	if info, e := os.Stat(path); e == nil {
+		mode = info.Mode().Perm() & 0666
+	}
+	if len(permissions) > 0 {
+		mode = permissions[0]
+	}
 	f, e := os.CreateTemp(filepath.Dir(path), ".fakeapi-*")
 	if e != nil {
 		return fmt.Errorf("E_FILE_WRITE")
 	}
 	name := f.Name()
 	defer os.Remove(name)
+	if e = f.Chmod(mode); e != nil {
+		f.Close()
+		return fmt.Errorf("E_FILE_WRITE")
+	}
 	if _, e = f.Write(b); e != nil {
 		f.Close()
 		return fmt.Errorf("E_FILE_WRITE")

@@ -73,9 +73,12 @@ The SDK runner expects a built `bin/fakeapi` (or `bin/fakeapi.exe` on Windows).
 It creates and removes a temporary local deployment. No paid AI is needed.
 
 Docker: build with `docker compose build`, export a preset to `runtime/` with
-the image's `init` command, create a Key with `docker compose run`, then start
+the image's `init --shared-config` command, create a Key with `docker compose run`, then start
 with `docker compose up -d`. SQLite is a persistent named volume; configuration
 is read-only and the service runs as UID 65532.
+Shared initialization makes only generated configuration and materials readable
+by that separate user. It creates no credentials or database; ordinary local
+initialization keeps private file permissions.
 
 Logs contain exactly time, validated model, duration and matched rule. SQLite
 stores Key metadata/hashes and counters, never conversations. Admitted failures

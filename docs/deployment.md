@@ -13,7 +13,13 @@ write/shutdown deadlines are bounded.
 
 `Dockerfile` builds a pure-Go binary and a scratch image with CA certificates.
 Configuration is mounted read-only; a named `/data` volume inherits UID 65532.
-Initialize the configuration before `compose up` and create a Key with
+Initialize the configuration with `init --shared-config` before `compose up`
+so UID 65532 can read the exported configuration and assets. Keep the mounted
+configuration directory searchable by that user. Shared files are readable
+but not writable by other users; raw credentials and the database are not
+created during initialization. Imported assets inherit the manifest's read
+permissions, and atomic manifest replacement preserves those permissions.
+Create a Key with
 `docker compose run --rm --no-deps fakeapi keys create ...`.
 
 For host mock servers, container 127.0.0.1 means the container itself. Use
