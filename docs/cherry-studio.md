@@ -4,6 +4,9 @@
 使用官方 Linux x64 AppImage，并按发布资产的 SHA256 校验。
 客户端启动在 Ubuntu 24.04 的隔离目录和虚拟显示中，不修改本机用户配置。
 
+2026-10-12，[提交 6f4a8b6 的客户端验收](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38263916166)
+通过全部列出的调用集和日志检查，rendererErrors/knownWarnings 均为空。
+
 ## 连接本地服务
 
 先按 README 初始化 FakeAPI、创建 Key 并启动服务。进入 Cherry Studio 的模型供应商设置，
@@ -23,6 +26,7 @@ Anthropic 必须有有效的最大输出设置；模型未知且上限未设置�
 
 先选 `fakeapi-test`，发送“只回答 OK”，再发送“1+1”；随后选 `fakeapi-frog`，发送 `/laugh`。
 在聊天页面检查正常结束、字符画等宽显示，以及流式生成中的停止按钮。
+该版本生成过程中以 **Pause** 按钮中断请求。
 
 ## 自动验收范围
 

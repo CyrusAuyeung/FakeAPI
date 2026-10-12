@@ -52,7 +52,7 @@ Gemini 新式 `responseFormat.text.mimeType` 使用 `APPLICATION_JSON` 或
 | Linux/Windows/macOS race detector | 三系统 GitHub Actions 通过 |
 | Linux amd64、Windows amd64、macOS arm64 原生 CLI | 三系统 Go 测试、原生运行与发行包解压运行通过 |
 | Linux arm64、macOS amd64 原生 CLI | 归档/架构已校验，仍待对应机器实际运行 |
-| Cherry Studio 2.1.6 | 独立 PR 中验收四协议、多轮、字符画和取消；结果以客户端工作流为准 |
+| Cherry Studio 2.1.6 Linux x64 | 四协议流式/多轮、ASCII 正文逐字一致、暂停和单并发 Key 恢复通过；使用隔离配置，手动配置界面与模型发现未纳入 |
 | Open WebUI Chat | 待 Docker 环境实测 |
 | aider、Cline | 待固定版本实测 |
 | Codex CLI、Claude Code | 待探索验证；不承诺完整 Agent 工作流 |
@@ -71,3 +71,9 @@ Gemini 新式 `responseFormat.text.mimeType` 使用 `APPLICATION_JSON` 或
 `init --shared-config`；普通本地初始化仍保留私有权限。
 验收修复了 Windows 短路径/macOS 链接父目录下的素材导入误判，并保留导入越界拒绝。
 详细步骤见 [自动运行验收](acceptance.md)。
+
+客户端及新增互操作修复提交 `6f4a8b6` 的
+[Cherry Studio 界面验收](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38263916166) 已通过。
+1280×900 视口中检查实际主窗口、消息完成、历史重传、暂停后恢复和正文一致性；
+报告中的 rendererErrors/knownWarnings 均为空。截图和 report.json 在该运行的 Artifacts。
+配置方法与边界见 [Cherry Studio](cherry-studio.md)。

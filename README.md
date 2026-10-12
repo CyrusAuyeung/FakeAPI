@@ -8,6 +8,9 @@
 
 当前为 `0.5.0-dev`。已实现四种入站协议的文本核心和流式输出，并通过六个锁定的官方 SDK 的指定调用测试。桌面客户端和容器的完整发布验收状态见 [兼容记录](docs/compatibility.md)。
 
+Cherry Studio 2.1.6 Linux x64 已通过四协议流式、多轮、ASCII 正文和暂停恢复验收。
+客户端端点与模型上限的填写方法见 [Cherry Studio 配置](docs/cherry-studio.md)。
+
 ## 快速启动
 
 源码需要 Go 1.27.2。普通部署可以使用对应平台的可执行文件。

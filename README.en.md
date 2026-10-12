@@ -1,5 +1,12 @@
 # FakeAPI
 
+GitHub Actions verifies native runtime and race on Linux, Windows, and macOS,
+Linux Docker Compose, six official SDKs, and extracted release archives.
+Cherry Studio 2.1.6 Linux x64 also passed four-protocol streams, history,
+rendered ASCII consistency, and cancellation recovery in an isolated profile.
+See [acceptance](docs/acceptance.md), [compatibility evidence](docs/compatibility.md),
+and [client configuration](docs/cherry-studio.md) for the tested scope.
+
 A small, self-hosted AI API simulator with configurable presets, streaming,
 timing, JSON/function fixtures, and selective calls to real AI.
 

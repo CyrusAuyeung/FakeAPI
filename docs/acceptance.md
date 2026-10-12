@@ -47,7 +47,8 @@ GitHub Release 和 GHCR 镜像。含预发行后缀的版本标记为 prerelease
 
 ## 客户端验收边界
 
-SDK 通过不能直接证明桌面客户端界面与 Provider 配置兼容。
-Cherry Studio 是下一轮优先客户端，需要独立记录版本、四种 Provider、
-模型发现、字符画显示、流式回复、停止生成及多轮历史结果。
+SDK 与桌面客户端分别验收。Cherry Studio 2.1.6 Linux x64 的四种 Provider、
+字符画正文、流式回复、暂停恢复和多轮历史已通过隔离 UI 验收，见
+[客户端记录](cherry-studio.md) 和 [兼容证据](compatibility.md)。
+Provider 手动配置界面、模型自动发现及 Windows/macOS 桌面版需要独立验证。
 其他系统架构的原生运行和其他桌面客户端仍需要单独验收。
