@@ -522,8 +522,17 @@ func decodeChat(b map[string]any, r *core.Request) *core.Error {
 	}
 	for i, x := range a {
 		m := obj(x)
-		if e := fields(m, "role content name tool_call_id tool_calls refusal", "messages."); e != nil {
+		if e := fields(m, "role content name tool_call_id tool_calls refusal reasoning_content", "messages."); e != nil {
 			return e
+		}
+		// Desktop clients may replay an empty response extension on ordinary
+		// assistant messages. It carries no content; meaningful reasoning is
+		// still rejected rather than silently discarded during translation.
+		if value := m["reasoning_content"]; value != nil {
+			text, ok := value.(string)
+			if !ok || text != "" {
+				return core.Invalid("messages.reasoning_content")
+			}
 		}
 		role := str(m["role"])
 		if !strings.Contains(" system developer user assistant tool ", " "+role+" ") || role == "" {
@@ -806,8 +815,42 @@ func decodeAnthropic(b map[string]any, r *core.Request) *core.Error {
 	return nil
 }
 func decodeGemini(b map[string]any, r *core.Request) *core.Error {
-	if e := fields(b, "contents systemInstruction tools toolConfig generationConfig", ""); e != nil {
+	if e := fields(b, "contents systemInstruction tools toolConfig generationConfig safetySettings", ""); e != nil {
 		return e
+	}
+	settings, e := arrayField(b["safetySettings"], "safetySettings")
+	if e != nil {
+		return e
+	}
+	if len(settings) > 6 {
+		return core.Invalid("safetySettings")
+	}
+	seen := map[string]bool{}
+	for _, value := range settings {
+		setting := obj(value)
+		if e := fields(setting, "category threshold", "safetySettings."); e != nil {
+			return e
+		}
+		category, threshold := str(setting["category"]), str(setting["threshold"])
+		switch category {
+		case "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_SEXUALLY_EXPLICIT", "HARM_CATEGORY_DANGEROUS_CONTENT", "HARM_CATEGORY_CIVIC_INTEGRITY", "HARM_CATEGORY_JAILBREAK":
+		default:
+			return core.Invalid("safetySettings.category")
+		}
+		if seen[category] {
+			return core.Invalid("safetySettings.category")
+		}
+		switch threshold {
+		case "HARM_BLOCK_THRESHOLD_UNSPECIFIED", "BLOCK_LOW_AND_ABOVE", "BLOCK_MEDIUM_AND_ABOVE", "BLOCK_ONLY_HIGH", "BLOCK_NONE", "OFF":
+		default:
+			return core.Invalid("safetySettings.threshold")
+		}
+		seen[category] = true
+	}
+	if len(settings) > 0 {
+		// Presets are local fixtures. A Chat upstream has no equivalent for
+		// these native controls, so the existing Extras preflight rejects them.
+		r.Extras["safetySettings"] = settings
 	}
 	parse := func(x any, index int, total int) (core.Message, *core.Error) {
 		m := obj(x)

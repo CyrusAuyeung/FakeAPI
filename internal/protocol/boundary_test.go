@@ -8,6 +8,58 @@ import (
 	"fakeapi/internal/core"
 )
 
+func TestEmptyChatReasoningReplay(t *testing.T) {
+	for _, value := range []any{nil, ""} {
+		body, e := json.Marshal(map[string]any{"model": "test", "messages": []any{
+			map[string]any{"role": "user", "content": "只回答 OK"},
+			map[string]any{"role": "assistant", "content": "OK", "reasoning_content": value},
+			map[string]any{"role": "user", "content": "1+1"},
+		}})
+		if e != nil {
+			t.Fatal(e)
+		}
+		r, err := Decode(core.Chat, strings.NewReader(string(body)), "test", false)
+		if err != nil || r.Latest.Text != "1+1" || len(r.Messages) != 3 {
+			t.Fatalf("empty replay annotation changed conversation: %v", err)
+		}
+	}
+	for _, value := range []any{"private reasoning", " ", false, 1, []any{}, map[string]any{}} {
+		body, _ := json.Marshal(map[string]any{"model": "test", "messages": []any{
+			map[string]any{"role": "assistant", "content": "OK", "reasoning_content": value},
+			map[string]any{"role": "user", "content": "1+1"},
+		}})
+		if _, err := Decode(core.Chat, strings.NewReader(string(body)), "test", false); err == nil {
+			t.Fatal("meaningful or invalid reasoning extension silently discarded")
+		}
+	}
+}
+
+func TestGeminiSafetySettings(t *testing.T) {
+	valid := `[ {"category":"HARM_CATEGORY_HATE_SPEECH","threshold":"BLOCK_NONE"}, {"category":"HARM_CATEGORY_HARASSMENT","threshold":"BLOCK_ONLY_HIGH"} ]`
+	for _, settings := range []string{"null", "[]", valid} {
+		body := `{"contents":[{"parts":[{"text":"1+1"}]}],"safetySettings":` + settings + `}`
+		r, e := Decode(core.Gemini, strings.NewReader(body), "test", false)
+		if e != nil || r.Latest.Text != "1+1" {
+			t.Fatalf("valid safety settings: %v", e)
+		}
+		if (len(r.Extras) > 0) != (settings == valid) {
+			t.Fatal("native safety intent lost before upstream preflight")
+		}
+	}
+	for _, settings := range []string{
+		`{}`, `[{}]`, `[{"category":"unknown","threshold":"BLOCK_NONE"}]`,
+		`[{"category":"HARM_CATEGORY_HATE_SPEECH","threshold":"unknown"}]`,
+		`[{"category":"HARM_CATEGORY_HATE_SPEECH HARM_CATEGORY_HARASSMENT","threshold":"BLOCK_NONE"}]`,
+		`[{"category":"HARM_CATEGORY_HATE_SPEECH","threshold":"BLOCK_NONE","extra":true}]`,
+		`[{"category":"HARM_CATEGORY_HATE_SPEECH","threshold":"BLOCK_NONE"},{"category":"HARM_CATEGORY_HATE_SPEECH","threshold":"OFF"}]`,
+	} {
+		body := `{"contents":[{"parts":[{"text":"1+1"}]}],"safetySettings":` + settings + `}`
+		if _, e := Decode(core.Gemini, strings.NewReader(body), "test", false); e == nil {
+			t.Fatal("malformed native controls accepted")
+		}
+	}
+}
+
 func TestMalformedConstraintsAndBlocks(t *testing.T) {
 	tests := []struct {
 		protocol core.Protocol

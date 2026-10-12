@@ -1,0 +1,58 @@
+name: Cherry Studio acceptance
+on:
+  pull_request:
+    paths:
+      - .github/workflows/cherry.yml
+      - tests/clients/**
+      - scripts/test-cherry.py
+      - internal/**
+      - examples/**
+      - assets/**
+      - go.mod
+      - go.sum
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cherry-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  desktop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with: {go-version: '1.27.2'}
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with: {python-version: '3.13.11'}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: {node-version: '24.12.0'}
+      - run: npm ci --prefix tests/clients
+      - name: Download verified Cherry Studio 2.1.6
+        shell: bash
+        run: |
+          mkdir -p .cache/cherry
+          curl --fail --location --retry 3 --connect-timeout 20 --max-time 180 --output .cache/cherry/Cherry.AppImage https://github.com/CherryHQ/cherry-studio/releases/download/v2.1.6/Cherry-Studio-2.1.6-linux-x64.AppImage
+          printf '%s\n' 'd23be4e10a0f2e57acd8ff3b892764bccf115ac837e29229a532d5c4423e11f1  .cache/cherry/Cherry.AppImage' | sha256sum --check
+          chmod +x .cache/cherry/Cherry.AppImage
+          cd .cache/cherry
+          ./Cherry.AppImage --appimage-extract > extraction.log
+      - name: Prepare display dependencies
+        timeout-minutes: 5
+        run: |
+          sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
+          sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y --no-install-recommends xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1 libsecret-1-0 fonts-noto-cjk
+      - run: go build -mod=readonly -o bin/fakeapi ./cmd/fakeapi
+      - name: Client UI, four protocols, ASCII, history, and cancellation
+        env:
+          CHERRY_EXECUTABLE: ${{ github.workspace }}/.cache/cherry/squashfs-root/CherryStudio
+        run: xvfb-run --auto-servernum --server-args='-screen 0 1280x900x24' python scripts/test-cherry.py
+      - name: Upload client screenshots and report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cherry-studio-2.1.6
+          path: .cache/cherry-evidence/
+          include-hidden-files: true
+          if-no-files-found: warn

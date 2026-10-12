@@ -1,0 +1,9 @@
+{
+  "name": "fakeapi-client-acceptance",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}
