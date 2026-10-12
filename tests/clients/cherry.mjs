@@ -127,7 +127,9 @@ try {
   pass('Cherry Studio 2.1.6: main window identity, nonblank app, and isolated configuration');
 
   for (const item of cases) {
-    const providerId = `fakeapi-${item.id}`;
+    // Cherry Studio recognizes UUID provider IDs as user-created providers.
+    const providerId = crypto.randomUUID();
+    item.providerId = providerId;
     await dataApi('POST', '/providers', {
       providerId, name: `FakeAPI ${item.id}`, endpointConfigs: { [item.endpoint]: { baseUrl: base + item.suffix } },
       defaultChatEndpoint: item.endpoint, authConfig: { type: 'api-key' },
@@ -145,7 +147,7 @@ try {
 
   for (const item of cases) {
     const before = requests.length;
-    await select(`fakeapi-${item.id}`, 'fakeapi-test');
+    await select(item.providerId, 'fakeapi-test');
     await send('只回答 OK', 'OK');
     await send('1+1', '2');
     assert(requests.slice(before).some(request => request.method === 'POST' && request.path === item.route),
@@ -154,7 +156,7 @@ try {
     pass(`${item.id}: real client stream, completed message, two-turn history, and native wire route`);
   }
 
-  await select('fakeapi-chat', 'fakeapi-frog');
+  await select(cases[0].providerId, 'fakeapi-frog');
   const laugh = readFileSync(path.join(process.env.FAKEAPI_TEST_ASSETS, 'nailong/laugh.txt'), 'utf8');
   await send('/laugh', laugh, true);
   await page.screenshot({ path: path.join(evidence, 'ascii-laugh.png') });
@@ -166,7 +168,7 @@ try {
   await expect(stop).toBeVisible({ timeout: 20000 });
   await stop.click();
   await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeVisible({ timeout: 10000 });
-  await select('fakeapi-chat', 'fakeapi-test');
+  await select(cases[0].providerId, 'fakeapi-test');
   await send('1+1', '2');
   await page.screenshot({ path: path.join(evidence, 'cancel-recovery.png') });
   pass('Stop generation releases the single request slot and allows a new reply');

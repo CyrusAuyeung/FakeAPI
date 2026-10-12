@@ -522,8 +522,17 @@ func decodeChat(b map[string]any, r *core.Request) *core.Error {
 	}
 	for i, x := range a {
 		m := obj(x)
-		if e := fields(m, "role content name tool_call_id tool_calls refusal", "messages."); e != nil {
+		if e := fields(m, "role content name tool_call_id tool_calls refusal reasoning_content", "messages."); e != nil {
 			return e
+		}
+		// Desktop clients may replay an empty response extension on ordinary
+		// assistant messages. It carries no content; meaningful reasoning is
+		// still rejected rather than silently discarded during translation.
+		if value := m["reasoning_content"]; value != nil {
+			text, ok := value.(string)
+			if !ok || text != "" {
+				return core.Invalid("messages.reasoning_content")
+			}
 		}
 		role := str(m["role"])
 		if !strings.Contains(" system developer user assistant tool ", " "+role+" ") || role == "" {

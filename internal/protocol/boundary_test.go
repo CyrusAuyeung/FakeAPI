@@ -8,6 +8,32 @@ import (
 	"fakeapi/internal/core"
 )
 
+func TestEmptyChatReasoningReplay(t *testing.T) {
+	for _, value := range []any{nil, ""} {
+		body, e := json.Marshal(map[string]any{"model": "test", "messages": []any{
+			map[string]any{"role": "user", "content": "只回答 OK"},
+			map[string]any{"role": "assistant", "content": "OK", "reasoning_content": value},
+			map[string]any{"role": "user", "content": "1+1"},
+		}})
+		if e != nil {
+			t.Fatal(e)
+		}
+		r, err := Decode(core.Chat, strings.NewReader(string(body)), "test", false)
+		if err != nil || r.Latest.Text != "1+1" || len(r.Messages) != 3 {
+			t.Fatalf("empty replay annotation changed conversation: %v", err)
+		}
+	}
+	for _, value := range []any{"private reasoning", " ", false, 1, []any{}, map[string]any{}} {
+		body, _ := json.Marshal(map[string]any{"model": "test", "messages": []any{
+			map[string]any{"role": "assistant", "content": "OK", "reasoning_content": value},
+			map[string]any{"role": "user", "content": "1+1"},
+		}})
+		if _, err := Decode(core.Chat, strings.NewReader(string(body)), "test", false); err == nil {
+			t.Fatal("meaningful or invalid reasoning extension silently discarded")
+		}
+	}
+}
+
 func TestMalformedConstraintsAndBlocks(t *testing.T) {
 	tests := []struct {
 		protocol core.Protocol
