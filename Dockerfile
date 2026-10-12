@@ -4,7 +4,7 @@ FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-bookworm AS build
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 ARG GOPROXY=https://proxy.golang.org,direct
-ARG VERSION=0.5.0-dev
+ARG VERSION=0.5.0-alpha.1
 ARG COMMIT=unknown
 ENV GOTOOLCHAIN=local
 WORKDIR /src

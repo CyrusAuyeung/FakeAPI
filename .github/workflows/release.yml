@@ -11,7 +11,12 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 jobs:
+  qualification:
+    if: startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/ci.yml
   build:
+    needs: qualification
+    if: ${{ always() && (needs.qualification.result == 'success' || needs.qualification.result == 'skipped') }}
     timeout-minutes: 40
     runs-on: ubuntu-24.04
     steps:
@@ -93,9 +98,11 @@ jobs:
           FAKEAPI_RELEASE_TAG: ${{ github.ref_name }}
         shell: bash
         run: |
-          release_flags=(--verify-tag --generate-notes)
+          release_flags=(--verify-tag)
+          notes="docs/releases/$FAKEAPI_RELEASE_TAG.md"
+          if [[ -f "$notes" ]]; then release_flags+=(--notes-file "$notes"); else release_flags+=(--generate-notes); fi
           if [[ "$FAKEAPI_RELEASE_TAG" == *-* ]]; then release_flags+=(--prerelease); fi
-          gh release create "$FAKEAPI_RELEASE_TAG" dist/*.zip dist/*.tar.gz dist/SHA256SUMS "${release_flags[@]}"
           printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
           docker buildx create --use
-          docker buildx build --platform linux/amd64,linux/arm64 --build-arg VERSION="$FAKEAPI_RELEASE_TAG" --build-arg COMMIT="$GITHUB_SHA" --label org.opencontainers.image.source="https://github.com/$GITHUB_REPOSITORY" --label org.opencontainers.image.licenses=MIT --tag "ghcr.io/${GITHUB_REPOSITORY,,}:$FAKEAPI_RELEASE_TAG" --push .
+          docker buildx build --platform linux/amd64,linux/arm64 --build-arg VERSION="${FAKEAPI_RELEASE_TAG#v}" --build-arg COMMIT="$GITHUB_SHA" --label org.opencontainers.image.source="https://github.com/$GITHUB_REPOSITORY" --label org.opencontainers.image.licenses=MIT --tag "ghcr.io/${GITHUB_REPOSITORY,,}:$FAKEAPI_RELEASE_TAG" --push .
+          gh release create "$FAKEAPI_RELEASE_TAG" dist/*.zip dist/*.tar.gz dist/SHA256SUMS "${release_flags[@]}"

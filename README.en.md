@@ -6,11 +6,12 @@ Cherry Studio 2.1.6 Linux x64 also passed four-protocol streams, history,
 rendered ASCII consistency, and cancellation recovery in an isolated profile.
 See [acceptance](docs/acceptance.md), [compatibility evidence](docs/compatibility.md),
 and [client configuration](docs/cherry-studio.md) for the tested scope.
+The [Windows PowerShell tutorial](docs/windows-quickstart.md) needs no AI desktop client.
 
 A small, self-hosted AI API simulator with configurable presets, streaming,
 timing, JSON/function fixtures, and selective calls to real AI.
 
-Development version: `0.5.0-dev`. Six pinned official Python/Node SDKs have
+Development preview: `0.5.0-alpha.1`. Six pinned official Python/Node SDKs have
 passed the documented local contract checks. GUI and container validation is
 tracked separately in [compatibility](docs/compatibility.md).
 
@@ -78,6 +79,9 @@ python scripts/test-sdk.py
 
 The SDK runner expects a built `bin/fakeapi` (or `bin/fakeapi.exe` on Windows).
 It creates and removes a temporary local deployment. No paid AI is needed.
+CI also exercises an immutable previous binary, same-schema downgrade, backup
+recovery and future-schema rejection. [Performance observations](docs/performance.md)
+measure real localhost requests with SQLite accounting and logs enabled; no speed gate is imposed.
 
 Docker: build with `docker compose build`, export a preset to `runtime/` with
 the image's `init --shared-config` command, create a Key with `docker compose run`, then start

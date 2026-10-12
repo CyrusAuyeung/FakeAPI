@@ -38,7 +38,7 @@ for row in checksums:
         else:
             assert binary[:4] == b'\xcf\xfa\xed\xfe'
             assert struct.unpack_from('<I', binary, 4)[0] == (0x100000C if 'arm64' in filename else 0x1000007)
-    for required in ['README.md', 'LICENSE', 'docs/compatibility.md', 'docs/THIRD_PARTY_NOTICES.md', 'schemas/config.v1.schema.json']:
+    for required in ['README.md', 'LICENSE', 'CHANGELOG.md', 'compose.yaml', 'docs/windows-quickstart.md', 'docs/compatibility.md', 'docs/THIRD_PARTY_NOTICES.md', 'schemas/config.v1.schema.json']:
         assert any(item.endswith('/' + required) for item in files), (filename, required)
     assert not any(item.endswith('.go') for item in files), 'runtime archive contains build-only Go sources'
 print('PASS five archive checksums, architecture headers, and required documentation')

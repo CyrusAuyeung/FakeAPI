@@ -1,7 +1,7 @@
 # 实施状态
 
 依据工作目录中的 `FakeAPI_Development_Plan.md` 实施；后续用户补充覆盖原计划，
-具体决定见 [001-scope](decisions/001-scope.md)。当前为 `0.5.0-dev`。
+具体决定见 [001-scope](decisions/001-scope.md)。当前为 `0.5.0-alpha.1` 开发预览版。
 
 已实现：四种入站协议、普通与 SSE 输出、模型目录、最新语义用户消息匹配、
 规则优先级与覆盖、三种节奏、可选模拟思考、四份指定 ASCII、素材导入、
@@ -19,6 +19,10 @@ time/model/duration_ms/rule。CLI 包含配置检查、规则解释、素材校�
 - Go `testing/synctest` 验证逻辑节奏，真实 localhost 请求验证传输取消。
 - 严格 YAML、生成配置 Schema 与示例的一致性、四份素材与静态等宽预览。
 - Windows 可执行文件与五个目标平台的交叉构建；归档附文档、素材、许可和 SHA256。
+- 固定旧二进制与候选版本的升级、同 schema 回退、在线备份恢复、RPM 保留及未来 schema 拒绝。
+- 真实 Windows PowerShell JSON/中文 UTF-8/字符画/SVG 调用；明确 UTF-8 响应编码。
+- 请求限制与不扣额度、服务停止/取消释放，以及四协议流中失败和目录游标检查。
+- 开启持久计数和日志的预设/模拟上游性能观察，见 [performance](performance.md)。
 
 覆盖率由 `go test -coverpkg=./internal/... -coverprofile=coverage.out ./...`
 产生，可用 `python scripts/coverage-summary.py` 汇总。统计包含 Go 进程内集成测试，
