@@ -57,6 +57,7 @@ const proxy = http.createServer((incoming, outgoing) => {
   });
   const forwarded = http.request(target, { method: incoming.method, headers: incoming.headers }, response => {
     outgoing.writeHead(response.statusCode, response.headers);
+    response.on('error', () => outgoing.destroy());
     response.pipe(outgoing);
   });
   forwarded.on('error', () => { if (!outgoing.headersSent) outgoing.writeHead(502); outgoing.end(); });

@@ -18,6 +18,15 @@ func localSettings(url string) config.Upstream {
 	return config.Upstream{BaseURL: config.StringValue{Literal: url + "/v1"}, MaxConcurrent: 2, ReasoningTranslation: "omit", Timeouts: config.Timeouts{Connect: config.Duration(time.Second), FirstEvent: config.Duration(time.Second), Idle: config.Duration(time.Second), Total: config.Duration(3 * time.Second)}}
 }
 
+func TestNativeSafetySettingsCannotBeDroppedByChatTranslation(t *testing.T) {
+	r := &core.Request{Protocol: core.Gemini, ToolChoice: "auto", Extras: map[string]any{
+		"safetySettings": []any{map[string]any{"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}},
+	}}
+	if e := Preflight(r, config.Target{}, config.Upstream{}); e == nil || e.Code != "unsupported_capability" {
+		t.Fatalf("native controls silently translated: %v", e)
+	}
+}
+
 func TestUsageMapping(t *testing.T) {
 	cases := []struct {
 		name               string

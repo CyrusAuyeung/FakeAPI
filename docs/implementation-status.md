@@ -25,6 +25,9 @@ time/model/duration_ms/rule。CLI 包含配置检查、规则解释、素材校�
 不包含外部 SDK 进程的二进制覆盖率。编码、规则、额度的关键行为已有断言；
 整体覆盖率仍低于全量完善后的目标，其他拒绝分支与故障注入需要继续补充。
 
-容器、race、其它系统原生运行与桌面客户端状态见
-[兼容记录](compatibility.md)。GitHub Actions 文件已准备，尚未在远端运行或公开发布。
+Linux amd64 Docker Compose、三系统 race、Linux amd64/Windows amd64/macOS arm64
+原生运行及对应发行包解压运行已经通过 GitHub Actions；六套 SDK 也已在远端通过。
+代码已公开到 [CyrusAuyeung/FakeAPI](https://github.com/CyrusAuyeung/FakeAPI)。
+客户端与其他架构的状态及证据见 [兼容记录](compatibility.md)，
+自动验收操作见 [acceptance](acceptance.md)。尚未推送正式发布标签。
 发行包是开发版构建，不等同于完成原计划全部 P8 验收。
