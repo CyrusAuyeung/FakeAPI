@@ -16,6 +16,7 @@ assert(key && process.env.CHERRY_EXECUTABLE && process.env.FAKEAPI_TEST_URL);
 const redact = value => String(value).replaceAll(key, '<redacted>');
 const passed = [];
 const errors = [];
+const knownWarnings = [];
 const requests = [];
 const cases = [
   { id: 'chat', endpoint: 'openai-chat-completions', suffix: '/v1', route: '/v1/chat/completions' },
@@ -35,11 +36,25 @@ async function port() {
   return value;
 }
 
-// Observe only method/path to prove which wire protocol the client selected.
-// Headers, request bodies, query credentials, and responses are never recorded.
+// Observe method/path and the numeric output-limit control to verify the wire.
+// Headers, messages, query credentials, and responses are never recorded.
 const proxy = http.createServer((incoming, outgoing) => {
   const target = new URL(incoming.url, process.env.FAKEAPI_TEST_URL);
-  requests.push({ method: incoming.method, path: target.pathname });
+  const record = { method: incoming.method, path: target.pathname };
+  requests.push(record);
+  // Retain only the typed numeric output-limit control, never message content.
+  let size = 0;
+  const fragments = [];
+  incoming.on('data', chunk => { size += chunk.length; if (size <= 65536) fragments.push(chunk); });
+  incoming.on('end', () => {
+    if (size > 65536 || incoming.method !== 'POST') return;
+    try {
+      const body = JSON.parse(Buffer.concat(fragments).toString());
+      const value = body.max_tokens;
+      record.maxTokens = { present: Object.hasOwn(body, 'max_tokens'), type: value === null ? 'null' : typeof value };
+      if (typeof value === 'number') record.maxTokens.value = value;
+    } catch {}
+  });
   const forwarded = http.request(target, { method: incoming.method, headers: incoming.headers }, response => {
     outgoing.writeHead(response.statusCode, response.headers);
     response.pipe(outgoing);
@@ -112,7 +127,15 @@ try {
     .some(candidate => candidate.url().includes('/windows/main/index.html')), { timeout: 60000 }).toBe(true);
   page = browser.contexts().flatMap(context => context.pages()).find(candidate => candidate.url().includes('/windows/main/index.html'));
   page.on('pageerror', error => errors.push(redact(error.message)));
-  page.on('console', message => { if (message.type() === 'error') errors.push(redact(message.text())); });
+  page.on('console', message => {
+    if (message.type() !== 'error') return;
+    const text = redact(message.text());
+    // Cherry 2.1.6's fallback avatar label logs newly-created provider IDs as
+    // missing translations. Record that client warning separately from errors.
+    if (/\[i18n:label\] Missing key|\[I18N\] Missing key:/.test(text)
+      && cases.some(item => item.providerId && text.includes(item.providerId))) knownWarnings.push(text);
+    else errors.push(text);
+  });
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(page.locator('#root')).toBeVisible({ timeout: 60000 });
   assert.match(await page.title(), /Cherry Studio/);
@@ -138,7 +161,8 @@ try {
     await dataApi('PATCH', `/providers/${providerId}`, { isEnabled: true });
     await dataApi('POST', '/models', ['fakeapi-test', 'fakeapi-frog'].map(modelId => ({
       providerId, modelId, name: `${item.id} ${modelId}`, group: 'FakeAPI',
-      endpointTypes: [item.endpoint], inputModalities: ['text'], outputModalities: ['text'], supportsStreaming: true
+      endpointTypes: [item.endpoint], inputModalities: ['text'], outputModalities: ['text'], supportsStreaming: true,
+      contextWindow: 32768, maxInputTokens: 32768, maxOutputTokens: 8192
     })));
   }
   await page.reload();
@@ -174,7 +198,7 @@ try {
   pass('Stop generation releases the single request slot and allows a new reply');
   assert.equal(await page.locator('vite-error-overlay, #webpack-dev-server-client-overlay').count(), 0);
   assert.equal(errors.length, 0, `renderer errors: ${errors.join('\n').slice(0,1500)}`);
-  pass('no renderer exceptions, console errors, or framework overlay in the tested flow');
+  pass('no renderer exceptions, unexpected console errors, or framework overlay in the tested flow');
 } catch (error) {
   failure = redact(error.stack ?? error);
   if (page) {
@@ -186,7 +210,7 @@ try {
 } finally {
   writeFileSync(path.join(evidence, 'report.json'), JSON.stringify({ version: '2.1.6',
     browser: 'Browser plugin not available; Playwright CDP in isolated GitHub runner', viewport: [1280,900],
-    passed, success: !failure, failure, rendererErrors: errors, requests,
+    passed, success: !failure, failure, rendererErrors: errors, knownWarnings, requests,
     durationSeconds: Math.round((Date.now() - started) / 1000) }, null, 2));
   if (browser) await browser.close().catch(() => {});
   if (app && app.exitCode === null) app.kill('SIGTERM');
