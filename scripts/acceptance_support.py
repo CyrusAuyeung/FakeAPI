@@ -47,7 +47,12 @@ class MockUpstream:
                 self.end_headers()
                 self.wfile.write(encoded)
 
-        self.server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        class Listener(ThreadingHTTPServer):
+            # The stdlib's queue of 5 is too small for the 64-client probe.
+            # Match the fixture capacity instead of measuring SYN retransmits.
+            request_queue_size = 128
+
+        self.server = Listener(('127.0.0.1', 0), Handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.url = f'http://127.0.0.1:{self.server.server_port}'
 

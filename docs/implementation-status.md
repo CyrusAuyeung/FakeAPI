@@ -33,5 +33,5 @@ Linux amd64 Docker Compose、三系统 race、Linux amd64/Windows amd64/macOS ar
 原生运行及对应发行包解压运行已经通过 GitHub Actions；六套 SDK 也已在远端通过。
 代码已公开到 [CyrusAuyeung/FakeAPI](https://github.com/CyrusAuyeung/FakeAPI)。
 客户端与其他架构的状态及证据见 [兼容记录](compatibility.md)，
-自动验收操作见 [acceptance](acceptance.md)。尚未推送正式发布标签。
+自动验收操作见 [acceptance](acceptance.md)。当前采用开发预览标签，v1.0 门槛仍需补齐。
 发行包是开发版构建，不等同于完成原计划全部 P8 验收。

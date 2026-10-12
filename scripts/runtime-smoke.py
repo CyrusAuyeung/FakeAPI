@@ -163,8 +163,15 @@ def request(backend, path, key=None, body=None, headers=None, status=200):
     except urllib.error.HTTPError as error:
         response = error
     with response:
-        assert response.code == status, f'{path}: expected {status}, got {response.code}'
-        return response.read().decode('utf-8'), response.headers
+        raw = response.read().decode('utf-8')
+        code = None
+        if response.code != status:
+            try:
+                code = json.loads(raw).get('error', {}).get('code')
+            except (ValueError, AttributeError):
+                pass
+        assert response.code == status, f'{path}: expected {status}, got {response.code}, code={code}'
+        return raw, response.headers
 
 
 def ready(backend):
