@@ -1,0 +1,30 @@
+# 实施状态
+
+依据工作目录中的 `FakeAPI_Development_Plan.md` 实施；后续用户补充覆盖原计划，
+具体决定见 [001-scope](decisions/001-scope.md)。当前为 `0.5.0-dev`。
+
+已实现：四种入站协议、普通与 SSE 输出、模型目录、最新语义用户消息匹配、
+规则优先级与覆盖、三种节奏、可选模拟思考、四份指定 ASCII、素材导入、
+有限 JSON 与单函数 fixture、选择性 AI/完整受支持历史转换、超时与预提交备用回复。
+
+Key 管理包含创建/导入/查询/更新/撤销、到期、总与 AI 次数、RPM、并发限制和显式重置。
+SQLite 事务保护准入，失败和取消保留已提交次数。请求日志只有
+time/model/duration_ms/rule。CLI 包含配置检查、规则解释、素材校验、一致备份和健康检查。
+
+## 本地验证
+
+- Go 单元和 HTTP 集成测试、`go vet`、真实 SDK 的指定调用集。
+- 总额度/AI 额度并发争抢、重启、时钟回退、过期、撤销、SQLite busy 与事务回滚。
+- 四协议的响应/错误/SSE 生命周期、Schema、Unicode、取消清理和上游失败策略。
+- Go `testing/synctest` 验证逻辑节奏，真实 localhost 请求验证传输取消。
+- 严格 YAML、生成配置 Schema 与示例的一致性、四份素材与静态等宽预览。
+- Windows 可执行文件与五个目标平台的交叉构建；归档附文档、素材、许可和 SHA256。
+
+覆盖率由 `go test -coverpkg=./internal/... -coverprofile=coverage.out ./...`
+产生，可用 `python scripts/coverage-summary.py` 汇总。统计包含 Go 进程内集成测试，
+不包含外部 SDK 进程的二进制覆盖率。编码、规则、额度的关键行为已有断言；
+整体覆盖率仍低于全量完善后的目标，其他拒绝分支与故障注入需要继续补充。
+
+容器、race、其它系统原生运行与桌面客户端状态见
+[兼容记录](compatibility.md)。GitHub Actions 文件已准备，尚未在远端运行或公开发布。
+发行包是开发版构建，不等同于完成原计划全部 P8 验收。

@@ -1,0 +1,72 @@
+{
+  "fakeapi/internal/cli": {
+    "covered": 177,
+    "statements": 363,
+    "percent": 48.8
+  },
+  "fakeapi/internal/config": {
+    "covered": 352,
+    "statements": 486,
+    "percent": 72.4
+  },
+  "fakeapi/internal/core": {
+    "covered": 30,
+    "statements": 34,
+    "percent": 88.2
+  },
+  "fakeapi/internal/pacing": {
+    "covered": 60,
+    "statements": 75,
+    "percent": 80.0
+  },
+  "fakeapi/internal/preset": {
+    "covered": 139,
+    "statements": 170,
+    "percent": 81.8
+  },
+  "fakeapi/internal/protocol": {
+    "covered": 757,
+    "statements": 1028,
+    "percent": 73.6
+  },
+  "fakeapi/internal/requestlog": {
+    "covered": 31,
+    "statements": 37,
+    "percent": 83.8
+  },
+  "fakeapi/internal/rules": {
+    "covered": 87,
+    "statements": 91,
+    "percent": 95.6
+  },
+  "fakeapi/internal/schema": {
+    "covered": 54,
+    "statements": 85,
+    "percent": 63.5
+  },
+  "fakeapi/internal/server": {
+    "covered": 183,
+    "statements": 355,
+    "percent": 51.5
+  },
+  "fakeapi/internal/store": {
+    "covered": 180,
+    "statements": 214,
+    "percent": 84.1
+  },
+  "fakeapi/internal/upstream": {
+    "covered": 335,
+    "statements": 440,
+    "percent": 76.1
+  },
+  "protocol/encode.go": {
+    "covered": 234,
+    "statements": 275,
+    "percent": 85.1
+  },
+  "total": {
+    "covered": 2385,
+    "statements": 3378,
+    "percent": 70.6
+  }
+}

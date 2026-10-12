@@ -1,0 +1,917 @@
+{
+  "$defs": {
+    "Action": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "asset": {
+          "type": "string"
+        },
+        "choices": {
+          "items": {
+            "$ref": "#/$defs/Choice"
+          },
+          "type": "array"
+        },
+        "final_text": {
+          "type": "string"
+        },
+        "json": {},
+        "name": {
+          "type": "string"
+        },
+        "on_error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OnError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "render": {
+          "type": "string"
+        },
+        "schema": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "strict_text": {
+          "type": "boolean"
+        },
+        "target": {
+          "type": "string"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AssetConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "manifest": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Atom": {
+      "additionalProperties": false,
+      "properties": {
+        "boundary": {
+          "type": "string"
+        },
+        "case_insensitive": {
+          "type": "boolean"
+        },
+        "exact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "keyword": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "regex": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Behavior": {
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "type": "string"
+        },
+        "thinking": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ThinkingPatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimingPatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Capabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "developer_role": {
+          "type": "boolean"
+        },
+        "images": {
+          "type": "boolean"
+        },
+        "json_object": {
+          "type": "boolean"
+        },
+        "json_schema": {
+          "type": "boolean"
+        },
+        "parallel_tool_calls_parameter": {
+          "type": "boolean"
+        },
+        "tools": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "Choice": {
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "type": "string"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "weight": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "Config": {
+      "additionalProperties": false,
+      "properties": {
+        "assets": {
+          "$ref": "#/$defs/AssetConfig"
+        },
+        "default_target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Null/empty means no global upstream target."
+        },
+        "defaults": {
+          "$ref": "#/$defs/Defaults"
+        },
+        "fallback": {
+          "$ref": "#/$defs/Rule"
+        },
+        "key_policies": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Policy"
+          },
+          "type": "object"
+        },
+        "matchers": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Matcher"
+          },
+          "type": "object"
+        },
+        "models": {
+          "items": {
+            "$ref": "#/$defs/Model"
+          },
+          "type": "array"
+        },
+        "profiles": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Profile"
+          },
+          "type": "object"
+        },
+        "request_log": {
+          "$ref": "#/$defs/RequestLog"
+        },
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/Rule"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "type": "integer"
+        },
+        "server": {
+          "$ref": "#/$defs/Server"
+        },
+        "storage": {
+          "$ref": "#/$defs/Storage"
+        },
+        "targets": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Target"
+          },
+          "type": "object"
+        },
+        "upstreams": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Upstream"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "schema_version",
+        "profiles",
+        "defaults",
+        "assets",
+        "key_policies",
+        "models",
+        "matchers",
+        "rules",
+        "fallback"
+      ],
+      "type": "object"
+    },
+    "Defaults": {
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "type": "string"
+        },
+        "random": {
+          "$ref": "#/$defs/Random"
+        }
+      },
+      "type": "object"
+    },
+    "Limits": {
+      "additionalProperties": false,
+      "properties": {
+        "input_tokens": {
+          "type": "integer"
+        },
+        "output_tokens": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "Matcher": {
+      "additionalProperties": false,
+      "properties": {
+        "all": {
+          "items": {
+            "$ref": "#/$defs/Atom"
+          },
+          "type": "array"
+        },
+        "any": {
+          "items": {
+            "$ref": "#/$defs/Atom"
+          },
+          "type": "array"
+        },
+        "max_chars": {
+          "type": "integer"
+        },
+        "none": {
+          "items": {
+            "$ref": "#/$defs/Atom"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Model": {
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/Limits"
+        },
+        "profile": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "OnError": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "response": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Action"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Policy": {
+      "additionalProperties": false,
+      "properties": {
+        "ai_limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "group": {
+          "type": "string"
+        },
+        "max_concurrent": {
+          "type": "integer"
+        },
+        "rpm": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "total_limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Profile": {
+      "additionalProperties": false,
+      "properties": {
+        "thinking": {
+          "$ref": "#/$defs/Thinking"
+        },
+        "timing": {
+          "$ref": "#/$defs/Timing"
+        }
+      },
+      "type": "object"
+    },
+    "Random": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "type": "string"
+        },
+        "allow_request_seed": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RequestLog": {
+      "additionalProperties": false,
+      "properties": {
+        "backups": {
+          "type": "integer"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "max_bytes": {
+          "type": "integer"
+        },
+        "output": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Rule": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "behavior": {
+          "$ref": "#/$defs/Behavior"
+        },
+        "enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "when": {
+          "$ref": "#/$defs/When"
+        }
+      },
+      "type": "object"
+    },
+    "Server": {
+      "additionalProperties": false,
+      "properties": {
+        "anthropic_messages_alias": {
+          "type": "boolean"
+        },
+        "listen": {
+          "type": "string"
+        },
+        "max_concurrent": {
+          "type": "integer"
+        },
+        "max_messages": {
+          "type": "integer"
+        },
+        "max_request_bytes": {
+          "type": "integer"
+        },
+        "max_response_bytes": {
+          "type": "integer"
+        },
+        "max_sse_event_bytes": {
+          "type": "integer"
+        },
+        "max_tools": {
+          "type": "integer"
+        },
+        "read_body_timeout": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "read_header_timeout": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "shutdown_timeout": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "write_timeout": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Storage": {
+      "additionalProperties": false,
+      "properties": {
+        "busy_timeout": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Target": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "$ref": "#/$defs/Capabilities"
+        },
+        "developer_role_fallback": {
+          "type": "string"
+        },
+        "max_tokens_parameter": {
+          "type": "string"
+        },
+        "model": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "env": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "upstream": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Thinking": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "text_asset": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ThinkingPatch": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text_asset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Timeouts": {
+      "additionalProperties": false,
+      "properties": {
+        "connect": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "first_event": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "idle": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "total": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Timing": {
+      "additionalProperties": false,
+      "properties": {
+        "chunk_size": {
+          "type": "integer"
+        },
+        "first_output_delay": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "graphemes_per_second": {
+          "type": "number"
+        },
+        "jitter": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "max_total": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "pause_duration": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        },
+        "pause_probability": {
+          "type": "number"
+        },
+        "thinking_to_body_delay": {
+          "description": "Go duration, for example 300ms or 5s",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "TimingPatch": {
+      "additionalProperties": false,
+      "properties": {
+        "chunk_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "first_output_delay": {
+          "anyOf": [
+            {
+              "description": "Go duration, for example 300ms or 5s",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "graphemes_per_second": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "jitter": {
+          "anyOf": [
+            {
+              "description": "Go duration, for example 300ms or 5s",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_total": {
+          "anyOf": [
+            {
+              "description": "Go duration, for example 300ms or 5s",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pause_duration": {
+          "anyOf": [
+            {
+              "description": "Go duration, for example 300ms or 5s",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pause_probability": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thinking_to_body_delay": {
+          "anyOf": [
+            {
+              "description": "Go duration, for example 300ms or 5s",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Upstream": {
+      "additionalProperties": false,
+      "properties": {
+        "api_key_env": {
+          "type": "string"
+        },
+        "base_url": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "env": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string"
+        },
+        "max_concurrent": {
+          "type": "integer"
+        },
+        "reasoning_translation": {
+          "type": "string"
+        },
+        "timeouts": {
+          "$ref": "#/$defs/Timeouts"
+        }
+      },
+      "type": "object"
+    },
+    "When": {
+      "additionalProperties": false,
+      "properties": {
+        "key_groups": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "key_tags_all": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "key_tags_any": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "matchers_any": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "models": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "user_text": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$ref": "#/$defs/Config",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Run fakeapi config check for all semantic constraints.",
+  "title": "FakeAPI configuration v1"
+}

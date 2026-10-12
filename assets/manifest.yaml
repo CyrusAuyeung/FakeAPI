@@ -1,0 +1,15 @@
+schema_version: 1
+assets:
+  - {id: nailong-wave, file: nailong/wave.txt, kind: ascii, author: FakeAPI contributors, origin: user-reference-derived, license: LicenseRef-Character-Reference, width_policy: ascii}
+  - {id: nailong-stand, file: nailong/stand.txt, kind: ascii, author: FakeAPI contributors, origin: user-reference-derived, license: LicenseRef-Character-Reference, width_policy: ascii}
+  - {id: nailong-laugh, file: nailong/laugh.txt, kind: ascii, author: FakeAPI contributors, origin: user-reference-derived, license: LicenseRef-Character-Reference, width_policy: ascii}
+  - {id: nailong-think, file: nailong/think.txt, kind: ascii, author: FakeAPI contributors, origin: user-reference-derived, license: LicenseRef-Character-Reference, width_policy: ascii}
+  - {id: thinking-natural, file: thinking/natural.txt, kind: text, author: FakeAPI contributors, origin: original, license: MIT, width_policy: unicode}
+  - {id: thinking-playful, file: thinking/playful.txt, kind: text, author: FakeAPI contributors, origin: original, license: MIT, width_policy: unicode}
+  - {id: line-laugh, file: text/laugh.txt, kind: text, author: FakeAPI contributors, origin: original, license: MIT, width_policy: unicode}
+  - {id: line-belly-laugh, file: text/belly-laugh.txt, kind: text, author: FakeAPI contributors, origin: original, license: MIT, width_policy: unicode}
+  - {id: line-thinking, file: text/thinking.txt, kind: text, author: FakeAPI contributors, origin: original, license: MIT, width_policy: unicode}
+  - {id: line-break-laugh, file: text/break-laugh.txt, kind: text, author: FakeAPI contributors, origin: original, license: MIT, width_policy: unicode}
+  - {id: pelican-svg, file: fixtures/pelican-bicycle.svg.txt, kind: svg, author: FakeAPI contributors, origin: original, license: MIT, width_policy: unicode}
+  - {id: json-ok, file: fixtures/json-ok.json, kind: json, author: FakeAPI contributors, origin: original, license: MIT, width_policy: unicode}
+  - {id: weather-tool, file: fixtures/weather-tool.json, kind: json, author: FakeAPI contributors, origin: original, license: MIT, width_policy: unicode}

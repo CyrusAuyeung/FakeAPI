@@ -1,0 +1,14 @@
+.cache/
+bin/
+data/
+runtime/
+/fakeapi.yaml
+.env
+*.sqlite*
+*.lock
+coverage.out
+coverage-*.out
+schemas-config.tmp
+tests/sdk/node/node_modules/
+tests/sdk/python/.venv/
+__pycache__/

@@ -1,0 +1,61 @@
+                      ,,::::::::::,,
+                   ,:;;;;;::::::::::::,
+                 :;iiiissrXXi;::::::::::,
+                 siii;X5rM@@BX;;;;;;;;::::
+                9irrrirAA3GS3riiii;;;;;;:::
+                i;;iirrrsssrrrrrriii;;;;;:::
+               r2AAXXXXXXXXXXssrrriiii;;;;:::
+                X2AAAAAXXXXXXsssrrriiii;;;;:::
+                 ;AAAAAAAXXXXssssrrriii;;;;;:::
+                  :AAAAAAAXXXssssrrriii;;;;:::::
+                   rAAAAAAXXXssrrrrriii;;;;::::::.
+                   ;AXXXXXXsssrrrriiiii;;;;:::::::,
+                   iXXXXXsssrrriiiiiii;;;;;::::::::,
+                  ,ssssssrrrrriiiiii;;;;;;;:::::::::,
+                  rsrrrrrriiiiiiiiiiii;;;;;:::::::::::
+                :rrrrrriiiiiiiiiiiiiiiiii;;;::::::::::,
+               ;rrrriiiiiiiiiiiiiiirrrrii;;;;::::::::::,
+             ,iriiiiiiiiiiiiiiiiiirsXsrrii;;;;::::::::::,
+            ;iiiiiiiiiii;;;iiiiiiirs2Xrrii;;;;::::::::;;:
+          :si;iiiiiiii;;;;;;;;iiiirs5srriii;;;;:::::::i;;,
+         ;si;iiiiii;;;;;;;;;;;;;iirX5Xssrii;;;;;::::::i;;;,
+        is;iiiiiiii;;;;;;;;;;;;;;irX32ssrii;;;;;:::::;i;;;:
+     :;ri;iiiiiiii;;;;;;;;;;;;;;;iirsriiiiii;;;;;::::i;;;;::
+   :irsi;iiiiiiiii;;;;;;;;;;;;;;;;;;:;;iiiiii;;;;;;;ii;;;;;:,
+ ,iirsiiiiiii;;;;;;;;;;;;;;;iiii;;iiiiiiiiiiiii;;;;iii;;;;;:;,
+:rsA53iiiiiiirsrrii;;;;iiiiiiiiiiiiiiiirrrrrrriiiiiii;;;;;;;;:
+s2hB&5iiiiii;AGGh5AXrrrrrrrrrrrrrrrrrrssssssssssrrriii;;;;;;;;:
+5h5hhriii;;irs2h3352AAXXssssssssssssssssXssXXXXsrriiii;;;;;;;;;
+5HHHGMiiiAhMMHMhhh3522AXXXXXXXXXsssssXXXXAAAXsrrriiiiii;;;;;;;;:
+iMMHS5iriAHSGGMMMMh3552AAXXXXXXAAAAAA222AAXsrrrriiiiiiii;;;;;;;;
+ sG##2rsr2HHHGGHHHHHMh35555555555222AAXXssrrrrrrriiiiiiii;;ii;;;
+  i3hsssssX3#SSGHMh352222AAAAAXXXXXssssssrrrrrrrriiiiiiiiiiii;;i
+   ,ssssssss252AAXXXXXXXXXXXXsssssssssssssrrrrrrrrriiiiiiiiiiiii
+    ssssssssssssssXXXXXXXXXXsssssssssssssssrrrrrrrrrrriiiiiiiii;
+    :XXXXXXXXXXXXXXXXXXXXXXXXssssssssssssssrrrrrrrrrrrrrriiiiii,
+     iAXXXXXXXXXXXXXXXXXXXXXXXsssssssssssssssrrrrrrrrrrrrrriir;
+      iAXXXXXXXXXXXXXXXXXXXXXXXXssssssssssssssrrrrrrrrrrrrrrri
+       ;XXXXXXXXXXXXXXXXXXXXXXXXXXssssssssssssssssssrrrrrrrri
+         rAXXXXXXXXXXXXXXXXXXXXXXXXXXXssssssssssssssssssrss;
+          :sAAXXXXXXAXXXXXXXXXXXXXXXXXXssssXXssssssssssssr:
+            :rAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXssssrrrrrrsr:
+             ,AAAAXXXXXXAAAAAAAAXXXXXXXXXXssssrrrrriii:
+              A222222AAAAXXXXAAAA2AAAAXXXssssrrrrriii:
+              sAA2255533335555552s22AAXXXssssrrrrriir:
+              ;2AA2225533hhhMMhh; s2AAXXXssssrrrrriir
+               s2A2225553333h33X   2AAXXXsssssrrrrrii
+                X2A222555333333    ;2AAXXssssssrrrrri
+                 X5222255333335     r2AAXXXsssssrrrr;
+                  s5525553333hA      s2AAAXXXXssssrs:
+                   i335333hhhhs       s5AAAAAXXXXsss
+                     3MhhhhMMM         s3222AAAAXXXs
+                      2GHHHHG3          sh5552222A2i
+                       rSGGGSr           ihh3335552
+                    ;rXAHGGHHs             MGMhh3hr
+            irsX253hMHGGHMMMhhAr            hSGHM3
+       AMMMMMMMMMMMMMMMMHHHHGHGGG           2GMh32
+       999BB###SSSSSSSSSSGGGHMh3A       isA33522AAXr
+        X  A5552AX                  rXA25522A22AAXA23i
+                                 2HGHMh3333352AAA2535
+                                hBBGGGH9BGGHMh3335s
+                                  A3MMhHGGSGGM3X

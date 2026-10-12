@@ -1,0 +1,316 @@
+schema_version: 1
+server: {listen: '127.0.0.1:8787', max_request_bytes: 8388608, max_response_bytes: 1048576, max_sse_event_bytes: 1048576,
+  max_concurrent: 64, max_messages: 256, max_tools: 32, read_header_timeout: 5s, read_body_timeout: 15s, write_timeout: 10s,
+  shutdown_timeout: 10s, anthropic_messages_alias: true}
+storage: {path: ../../data/state.sqlite, busy_timeout: 2s}
+request_log: {enabled: true, output: stdout}
+defaults:
+  profile: instant
+  random: {mode: deterministic, algorithm: pcg_v1, seed: 42, allow_request_seed: true}
+profiles:
+  instant:
+    thinking: {enabled: false}
+    timing: {first_output_delay: 0ms, thinking_to_body_delay: 0ms, graphemes_per_second: 0, chunk_size: 16,
+      jitter: 0ms, pause_probability: 0, pause_duration: 0ms, max_total: 5s}
+  natural:
+    thinking: {enabled: true, channel: portable_text, text_asset: thinking-natural}
+    timing: {first_output_delay: 300ms, thinking_to_body_delay: 300ms, graphemes_per_second: 180, chunk_size: 8,
+      jitter: 20ms, pause_probability: 0.02, pause_duration: 100ms, max_total: 30s}
+  playful:
+    thinking: {enabled: true, channel: portable_text, text_asset: thinking-playful}
+    timing: {first_output_delay: 1500ms, thinking_to_body_delay: 1500ms, graphemes_per_second: 120, chunk_size: 8,
+      jitter: 120ms, pause_probability: 0.02, pause_duration: 300ms, max_total: 45s}
+assets: {manifest: ../../assets/manifest.yaml}
+key_policies:
+  demo:
+    tags: [demo]
+    group: default
+    expires_at: null
+    total_limit: 10000
+    ai_limit: 0
+    rpm: 60
+    max_concurrent: 4
+  hybrid:
+    tags: [ai]
+    group: default
+    expires_at: null
+    total_limit: 10000
+    ai_limit: 100
+    rpm: 60
+    max_concurrent: 4
+  test:
+    tags: [test]
+    group: testing
+    expires_at: null
+    total_limit: null
+    ai_limit: 0
+    rpm: null
+    max_concurrent: 16
+models:
+- id: fakeapi-frog
+  display_name: 奶蛙 · 自然
+  profile: instant
+  created_at: '2026-10-12T00:00:00Z'
+  limits: {input_tokens: 32768, output_tokens: 8192}
+- id: fakeapi-test
+  display_name: FakeAPI · 极速测试
+  profile: instant
+  created_at: '2026-10-12T00:00:00Z'
+  limits: {input_tokens: 32768, output_tokens: 8192}
+upstreams: {}
+targets: {}
+default_target: null
+matchers:
+  greeting:
+    max_chars: 24
+    any:
+    - {regex: '(?i)^(你好|您好|hi|hello|hey)[!！。.]?$'}
+  identity:
+    max_chars: 64
+    any:
+    - {regex: '(?i)^(你是谁|你是什么模型|what model are you|who are you)[?？!！。.]?$'}
+  simple-math:
+    max_chars: 40
+    any:
+    - {regex: '^(?:计算\s*)?([+-]?\d{1,6})\s*([+*/-])\s*([+-]?\d{1,6})\s*(?:=\s*\??|\?)?$'}
+  decimal-test:
+    max_chars: 40
+    any:
+    - {exact: 9.9和9.11哪个大}
+    - {exact: 9.9 和 9.11 哪个大？}
+  strawberry-test:
+    max_chars: 80
+    any:
+    - {exact: strawberry 中有几个 r？}
+    - {exact: 'How many r letters are in strawberry?'}
+  ok-test:
+    max_chars: 32
+    any:
+    - {exact: 只回答 OK}
+    - {exact: Reply with OK only.}
+  pelican-test:
+    max_chars: 100
+    any:
+    - {exact: 用 SVG 画骑自行车的鹈鹕}
+    - {exact: 用SVG画骑自行车的鹈鹕}
+    - {exact: 请用 SVG 画骑自行车的鹈鹕。}
+    - {exact: Draw a pelican riding a bicycle in SVG.}
+  json-test:
+    any:
+    - {exact: /test/json}
+  tool-test:
+    any:
+    - {exact: /test/tool}
+  frog-command:
+    any:
+    - {exact: /frog}
+  laugh-command:
+    any:
+    - {exact: /laugh}
+  laugh-easter:
+    max_chars: 80
+    any:
+    - {keyword: 哈哈哈}
+    none:
+    - {keyword: 不要}
+  thinking-easter:
+    max_chars: 40
+    all:
+    - {keyword: 奶蛙}
+    - {keyword: 思考}
+    none:
+    - {keyword: 不要}
+  wave-command:
+    any:
+    - {exact: /wave}
+rules:
+- id: fixture-json
+  enabled: true
+  priority: 1200
+  when:
+    matchers_any: [json-test]
+    models: [fakeapi-test]
+    key_tags_any: [test]
+    key_groups: [testing]
+  action:
+    type: json_fixture
+    json: {ok: true, source: fakeapi}
+    schema:
+      type: object
+      properties:
+        ok: {type: boolean}
+        source: {type: string}
+      required: [ok, source]
+      additionalProperties: false
+  behavior:
+    profile: instant
+    thinking: {enabled: false}
+- id: fixture-tool
+  enabled: true
+  priority: 1190
+  when:
+    matchers_any: [tool-test]
+    models: [fakeapi-test]
+    key_tags_any: [test]
+    key_groups: [testing]
+  action:
+    type: tool_fixture
+    name: get_weather
+    arguments: {city: Guangzhou}
+    final_text: 工具测试完成。
+  behavior:
+    profile: instant
+    thinking: {enabled: false}
+- id: ai-greeting
+  enabled: false
+  priority: 1000
+  when:
+    matchers_any: [greeting]
+    key_tags_all: [ai]
+  action:
+    type: upstream
+    on_error: {mode: api_error}
+- id: ai-identity
+  enabled: false
+  priority: 990
+  when:
+    matchers_any: [identity]
+    key_tags_all: [ai]
+  action:
+    type: upstream
+    on_error: {mode: api_error}
+- id: ai-tests
+  enabled: false
+  priority: 980
+  when:
+    matchers_any: [simple-math, decimal-test, strawberry-test, ok-test]
+    key_tags_all: [ai]
+  action:
+    type: upstream
+    on_error: {mode: api_error}
+- id: ai-pelican
+  enabled: false
+  priority: 970
+  when:
+    matchers_any: [pelican-test]
+    key_tags_all: [ai]
+  action:
+    type: upstream
+    on_error: {mode: api_error}
+- id: preset-greeting
+  enabled: true
+  priority: 600
+  when:
+    matchers_any: [greeting]
+  action:
+    type: preset
+    choices:
+    - {text: 你好！有什么可以帮你？, weight: 3}
+    - {text: 你好！今天想聊些什么？, weight: 1}
+- id: preset-identity
+  enabled: true
+  priority: 590
+  when:
+    matchers_any: [identity]
+  action: {type: preset, text: '我是 FakeAPI 模拟服务，当前展示模型是 {{model}}。这条回复来自本地预设。'}
+- id: preset-math
+  enabled: true
+  priority: 580
+  when:
+    matchers_any: [simple-math]
+  action: {type: arithmetic}
+  behavior:
+    profile: instant
+    thinking: {enabled: false}
+- id: preset-decimal
+  enabled: true
+  priority: 570
+  when:
+    matchers_any: [decimal-test]
+  action: {type: preset, text: 9.9 更大，因为 9.90 > 9.11。, strict_text: true}
+  behavior:
+    profile: instant
+    thinking: {enabled: false}
+- id: preset-strawberry
+  enabled: true
+  priority: 560
+  when:
+    matchers_any: [strawberry-test]
+  action: {type: preset, text: '3', strict_text: true}
+  behavior:
+    profile: instant
+    thinking: {enabled: false}
+- id: preset-ok
+  enabled: true
+  priority: 550
+  when:
+    matchers_any: [ok-test]
+  action: {type: preset, text: OK, strict_text: true}
+  behavior:
+    profile: instant
+    thinking: {enabled: false}
+- id: preset-pelican
+  enabled: true
+  priority: 540
+  when:
+    matchers_any: [pelican-test]
+  action: {type: preset, asset: pelican-svg, render: plain}
+  behavior:
+    profile: instant
+    thinking: {enabled: false}
+- id: easter-frog
+  enabled: true
+  priority: 500
+  when:
+    matchers_any: [frog-command]
+    models: [fakeapi-frog]
+  action: {type: preset, asset: nailong-wave}
+  behavior: {profile: instant}
+- id: easter-frog-test
+  enabled: true
+  priority: 501
+  when:
+    matchers_any: [frog-command]
+    models: [fakeapi-test]
+  action: {type: preset, asset: nailong-wave}
+  behavior:
+    profile: instant
+    thinking: {enabled: false}
+- id: easter-laugh-command
+  enabled: true
+  priority: 490
+  when:
+    matchers_any: [laugh-command]
+  action:
+    type: preset
+    choices:
+    - {asset: nailong-laugh, weight: 2}
+    - {asset: line-laugh, weight: 1}
+- id: easter-laugh
+  enabled: true
+  priority: 480
+  when:
+    matchers_any: [laugh-easter]
+  action: {type: preset, asset: line-belly-laugh}
+- id: easter-thinking
+  enabled: true
+  priority: 470
+  when:
+    matchers_any: [thinking-easter]
+  action: {type: preset, asset: line-thinking}
+- id: easter-wave
+  enabled: true
+  priority: 460
+  when:
+    matchers_any: [wave-command]
+  action: {type: preset, asset: line-break-laugh}
+fallback:
+  id: default-frog
+  action:
+    type: preset
+    render: auto
+    choices:
+    - {asset: nailong-stand, weight: 4}
+    - {asset: nailong-laugh, weight: 2}
+    - {asset: nailong-think, weight: 2}
+    - {asset: nailong-wave, weight: 1}

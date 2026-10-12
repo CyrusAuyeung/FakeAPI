@@ -1,0 +1,96 @@
+name: Build release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    timeout-minutes: 40
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with: {go-version: '1.27.2'}
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with: {python-version: '3.13.11'}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: {node-version: '24.12.0'}
+      - run: go test -mod=readonly -race ./...
+      - run: python -m pip install -r tests/sdk/python/requirements.txt
+      - run: npm ci --prefix tests/sdk/node
+      - run: go build -mod=readonly -o bin/fakeapi ./cmd/fakeapi
+      - run: python scripts/test-sdk.py
+      - run: python scripts/build-release.py
+      - run: python scripts/verify-release.py
+      - name: Validate container
+        env:
+          FAKEAPI_BUILD_VERSION: ${{ github.ref_name }}
+          FAKEAPI_BUILD_COMMIT: ${{ github.sha }}
+        run: docker build -t fakeapi:release --build-arg VERSION="$FAKEAPI_BUILD_VERSION" --build-arg COMMIT="$FAKEAPI_BUILD_COMMIT" .
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-archives
+          path: |
+            bin/releases/*.zip
+            bin/releases/*.tar.gz
+            bin/releases/SHA256SUMS
+          if-no-files-found: error
+      - name: Upload release runtime report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-runtime-Linux
+          path: .cache/acceptance/release-*.json
+          if-no-files-found: warn
+  verify-native:
+    name: Release runtime (${{ matrix.os }})
+    needs: build
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with: {python-version: '3.13.11'}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with: {name: release-archives, path: bin/releases}
+      - run: python scripts/verify-release.py
+      - name: Upload release runtime report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-runtime-${{ runner.os }}-${{ runner.arch }}
+          path: .cache/acceptance/release-*.json
+          if-no-files-found: warn
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, verify-native]
+    timeout-minutes: 25
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with: {name: release-archives, path: dist}
+      - name: Publish tagged artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FAKEAPI_RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          release_flags=(--verify-tag --generate-notes)
+          if [[ "$FAKEAPI_RELEASE_TAG" == *-* ]]; then release_flags+=(--prerelease); fi
+          gh release create "$FAKEAPI_RELEASE_TAG" dist/*.zip dist/*.tar.gz dist/SHA256SUMS "${release_flags[@]}"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker buildx create --use
+          docker buildx build --platform linux/amd64,linux/arm64 --build-arg VERSION="$FAKEAPI_RELEASE_TAG" --build-arg COMMIT="$GITHUB_SHA" --label org.opencontainers.image.source="https://github.com/$GITHUB_REPOSITORY" --label org.opencontainers.image.licenses=MIT --tag "ghcr.io/${GITHUB_REPOSITORY,,}:$FAKEAPI_RELEASE_TAG" --push .

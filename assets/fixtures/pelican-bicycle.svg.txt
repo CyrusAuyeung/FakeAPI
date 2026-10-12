@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#edf8ff"/>
+  <path d="M40 330H560" stroke="#94a3b8" stroke-width="3"/>
+  <g fill="none" stroke="#334155" stroke-width="8">
+    <circle cx="175" cy="280" r="58"/><circle cx="425" cy="280" r="58"/>
+    <path d="M175 280L260 190L305 280Z M260 190L370 190L305 280 M370 190L425 280 M370 190L355 160H395 M240 183H285"/>
+  </g>
+  <g fill="#fffdf6" stroke="#334155" stroke-width="4">
+    <ellipse cx="290" cy="152" rx="62" ry="45"/>
+    <path d="M310 125Q325 90 320 65Q321 40 345 42Q373 45 361 80L340 155Z"/>
+    <path d="M355 58L465 78L355 88Z" fill="#fbbf24"/>
+    <path d="M355 88Q401 128 457 80" fill="#fde68a"/>
+    <path d="M245 137Q212 126 225 177L267 175"/>
+    <path d="M268 132Q290 110 319 145Q307 180 271 169Z" fill="#e2e8f0"/>
+  </g>
+  <circle cx="345" cy="57" r="5" fill="#0f172a"/>
+  <path d="M312 174L335 205L305 250M277 184L248 220L265 270" fill="none" stroke="#d97706" stroke-width="8" stroke-linecap="round"/>
+  <path d="M294 252H325M250 274H278" stroke="#d97706" stroke-width="7" stroke-linecap="round"/>
+  <text x="300" y="375" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#334155">A pelican riding a bicycle</text>
+</svg>

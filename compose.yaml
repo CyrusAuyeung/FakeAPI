@@ -1,0 +1,33 @@
+services:
+  fakeapi:
+    image: ${FAKEAPI_IMAGE:-fakeapi:local}
+    build:
+      context: .
+      args:
+        GO_VERSION: 1.27.2
+    command: [serve, --listen, '0.0.0.0:8787']
+    environment:
+      FAKEAPI_CONFIG: /config/fakeapi.yaml
+      FAKEAPI_STATE: /data/state.sqlite
+      FAKEAPI_UPSTREAM_BASE_URL: ${FAKEAPI_UPSTREAM_BASE_URL:-}
+      FAKEAPI_UPSTREAM_API_KEY: ${FAKEAPI_UPSTREAM_API_KEY:-}
+      FAKEAPI_UPSTREAM_MODEL: ${FAKEAPI_UPSTREAM_MODEL:-}
+      FAKEAPI_UPSTREAM_SVG_MODEL: ${FAKEAPI_UPSTREAM_SVG_MODEL:-}
+    ports: ['127.0.0.1:8787:8787']
+    volumes: ['./runtime:/config:ro', 'fakeapi-data:/data']
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 15s
+    healthcheck:
+      test: [CMD, /fakeapi, health, --url, 'http://127.0.0.1:8787']
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: '10m', max-file: '3'}
+volumes:
+  fakeapi-data: {}

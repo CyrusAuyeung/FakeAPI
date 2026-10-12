@@ -1,0 +1,55 @@
+name: Go and runtime acceptance
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: go-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    name: Native (${{ matrix.os }})
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.27.2'
+          cache: true
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with: {python-version: '3.13.11'}
+      - name: Formatting
+        shell: bash
+        run: test -z "$(gofmt -l cmd internal assets/embed.go examples/embed.go tests/mockupstream)"
+      - run: go vet -mod=readonly ./...
+      - run: go test -mod=readonly -count=1 ./...
+      - run: go build -mod=readonly -trimpath -o bin/ ./cmd/fakeapi
+      - name: Native CLI and HTTP acceptance
+        run: python scripts/runtime-smoke.py
+      - name: Race detector
+        if: runner.os != 'Windows'
+        run: go test -mod=readonly -race -count=1 ./...
+      - name: Decoder fuzzing
+        if: runner.os == 'Linux'
+        run: go test -mod=readonly ./internal/protocol -run '^$' -fuzz '^FuzzDecode$' -fuzztime=15s -parallel=4
+      - name: Build container
+        if: runner.os == 'Linux'
+        run: docker build -t fakeapi:ci .
+      - name: Compose runtime acceptance
+        if: runner.os == 'Linux'
+        run: python scripts/runtime-smoke.py --docker --image fakeapi:ci
+      - name: Upload runtime reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: runtime-${{ runner.os }}-${{ runner.arch }}
+          path: .cache/acceptance/*.json
+          if-no-files-found: warn

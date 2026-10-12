@@ -1,0 +1,9 @@
+.git
+.cache
+bin
+data
+runtime
+.env
+fakeapi.yaml
+**/node_modules
+**/.venv

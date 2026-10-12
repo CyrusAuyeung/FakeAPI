@@ -1,0 +1,1 @@
+{"name":"get_weather","description":"Return the weather for a city in a test fixture.","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"],"additionalProperties":false},"arguments":{"city":"Guangzhou"}}
