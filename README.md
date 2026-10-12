@@ -141,3 +141,7 @@ GitHub Actions 同时验收三系统原生运行及解压后的发行包，报�
 支持有限 JSON/工具 fixture；服务不执行工具。Responses 采用客户端重传上下文的无状态模式。原生签名思考、有状态 Responses、音视频生成、多候选和完整 Agent 循环属于后续范围。[协议范围](docs/protocol-matrix.md) 列出具体限制。
 
 软件代码使用 MIT；每份素材的来源和许可独立登记。第三方许可见 [声明](docs/THIRD_PARTY_NOTICES.md)。
+
+## 友情链接
+
+- [LINUX DO 社区](https://linux.do/)
