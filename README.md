@@ -6,10 +6,11 @@
 
 轻量、可自部署的 AI API 模拟服务。用规则返回预设文案、字符画、JSON 或单次工具调用，也可以只把指定测试请求交给真实 AI。
 
-当前为 `0.5.0-dev`。已实现四种入站协议的文本核心和流式输出，并通过六个锁定的官方 SDK 的指定调用测试。桌面客户端和容器的完整发布验收状态见 [兼容记录](docs/compatibility.md)。
+当前为 `0.5.0-alpha.1` 开发预览版。已实现四种入站协议的文本核心和流式输出，并通过六个锁定的官方 SDK 的指定调用测试。桌面客户端和容器的完整发布验收状态见 [兼容记录](docs/compatibility.md)。
 
 Cherry Studio 2.1.6 Linux x64 已通过四协议流式、多轮、ASCII 正文和暂停恢复验收。
 客户端端点与模型上限的填写方法见 [Cherry Studio 配置](docs/cherry-studio.md)。
+没有 AI 客户端也可使用 [Windows PowerShell 教程](docs/windows-quickstart.md)。
 
 ## 快速启动
 
@@ -122,12 +123,14 @@ go build -o bin/fakeapi.exe ./cmd/fakeapi
 python scripts/test-sdk.py
 ```
 
-Linux/macOS 构建文件名用 `bin/fakeapi`。SDK 脚本自动启动临时本地服务、创建临时 Key、执行断言并清理。测试不需要真实 AI 或付费 Key。CI 在 Linux 运行 race detector。
+Linux/macOS 构建文件名用 `bin/fakeapi`。SDK 脚本自动启动临时本地服务、创建临时 Key、执行断言并清理。测试不需要真实 AI 或付费 Key。CI 在 Linux、Windows 和 macOS 运行 race detector。
 
 `python scripts/runtime-smoke.py` 验收已构建二进制的实际运行；
 `python scripts/runtime-smoke.py --docker --image fakeapi:ci` 验收 Compose 部署。
 GitHub Actions 同时验收三系统原生运行及解压后的发行包，报告和归档可在
 [Actions](https://github.com/CyrusAuyeung/FakeAPI/actions) 下载。详见 [自动运行验收](docs/acceptance.md)。
+跨版本升级与备份恢复使用 `scripts/upgrade-smoke.py`；
+`scripts/measure-performance.py` 提供 [性能观察](docs/performance.md)，没有固定速度门槛。
 
 ## 范围与数据
 

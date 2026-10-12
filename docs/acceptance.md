@@ -12,6 +12,12 @@
 | Official SDK contracts | 六个锁定的 Python/Node 官方 SDK，普通/流式、历史、JSON、单工具、取消、模型列表和错误 |
 | Build release | 五个平台归档、SHA256、架构与随包文档；在 Linux、Windows、macOS 解压对应发行包并实际运行 |
 
+Go 工作流另外构建固定 `b94edf5` 旧版本，调用 `scripts/upgrade-smoke.py`
+验证 Key/策略/到期/总与 AI 次数/撤销/RPM 在升级及同 schema 回退后保留，
+并验证恢复在线备份及拒绝未来 schema。全部操作限定在独立临时目录。
+Linux 的 `scripts/measure-performance.py` 上传 [性能观察](performance.md)，
+速度随环境变化，不以固定延迟或吞吐阈值判定成功。
+
 `scripts/runtime-smoke.py` 使用隔离的临时部署和 Key，验证：
 
 - 初始化、配置校验，以及恰好四份 ASCII 形象。
@@ -44,6 +50,7 @@ python scripts/runtime-smoke.py --docker --image fakeapi:ci
 常规验收不需要真实 AI、仓库 Secrets 或付费 Key。
 main、PR 和手动构建生成可下载的测试发行包；只有明确推送 `v*` 标签才会发布
 GitHub Release 和 GHCR 镜像。含预发行后缀的版本标记为 prerelease。
+标签发布先调用三系统完整 Go/运行验收；其失败会阻止发行构建和发布。
 
 ## 客户端验收边界
 

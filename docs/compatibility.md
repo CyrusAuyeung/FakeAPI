@@ -1,6 +1,6 @@
 # 兼容验证记录
 
-FakeAPI `0.5.0-dev`，验证日期 **2026-10-12**。本地系统为 Windows 11
+FakeAPI `0.5.0-alpha.1` 开发预览，验证日期 **2026-10-12**。本地系统为 Windows 11
 build 26200，Go 1.27.2、Python 3.13.11、Node 24.12.0。
 所有服务端和上游测试使用 localhost，未调用付费 AI。
 

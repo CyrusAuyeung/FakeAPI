@@ -41,8 +41,26 @@ may be added to proxy/HTTP debug logging by this service.
 Current database schema is 1, created automatically for a new database. A newer
 schema is rejected. Roll back using the previous binary/configuration and the
 pre-migration backup. Keep the data volume during Compose upgrades.
+Restoring a backup restores its snapshot counters; calls accepted after the backup
+are not retained. To recover, stop the service and use a fresh database path/volume
+with that backup. Do not overwrite an open database or leave its old WAL/SHM beside
+a restored file. `--state PATH` selects the recovered database explicitly.
+
+`scripts/upgrade-smoke.py` compares an immutable previous binary (`b94edf5`)
+with the candidate on temporary data. It exercises real preset/AI calls, online
+backup, policy/expiry/hash/usage/revocation preservation, same-schema downgrade,
+the RPM window, restoration to the backup snapshot and logical non-modification
+when a future schema is rejected. CI repeats this on Linux, Windows and macOS.
+Current schema remains 1; no schema-2 migration has been introduced or certified.
 
 Release archives are built by `python scripts/build-release.py`. A pushed `v*`
-tag runs contract/SDK checks, then publishes archives and a multi-architecture
+tag first runs the full reusable runtime qualification, then contract/SDK checks
+and archive runtime checks before publishing archives and a multi-architecture
 GHCR image with repository token permissions. Workflow dispatch only builds.
 No GitHub repository or published release is created by local development.
+
+For a published image, use the archive's `compose.yaml` with an explicit image tag,
+e.g. `FAKEAPI_IMAGE=ghcr.io/cyrusauyeung/fakeapi:v0.5.0-alpha.1`.
+Initialize `runtime/` using that image's `init --shared-config`, create a Key,
+and run `docker compose up --no-build -d`. Source `docker compose build` requires
+the source checkout; portable archives contain the executable and deployment configuration.

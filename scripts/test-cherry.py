@@ -45,6 +45,12 @@ def main():
                 return result.returncode
         finally:
             backend.cleanup()
+            # Keep only the service's four allowed fields for failure diagnosis.
+            rows = [json.loads(line) for line in backend.logs().splitlines() if line.startswith('{')]
+            assert all(set(row) == {'time', 'model', 'duration_ms', 'rule'} for row in rows)
+            evidence = ROOT / '.cache/cherry-evidence'
+            evidence.mkdir(exist_ok=True)
+            (evidence / 'server-requests.json').write_text(json.dumps(rows, indent=2) + '\n', encoding='utf-8')
         logs = backend.logs()
         assert key not in logs, 'raw Key in server log'
         rows = [json.loads(line) for line in logs.splitlines() if line.startswith('{')]

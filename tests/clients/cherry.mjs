@@ -36,7 +36,7 @@ async function port() {
   return value;
 }
 
-// Observe method/path and the numeric output-limit control to verify the wire.
+// Observe public transport state and fixture labels to verify the wire.
 // Headers, messages, query credentials, and responses are never recorded.
 const proxy = http.createServer((incoming, outgoing) => {
   const target = new URL(incoming.url, process.env.FAKEAPI_TEST_URL);
@@ -53,15 +53,33 @@ const proxy = http.createServer((incoming, outgoing) => {
       const value = body.max_tokens;
       record.maxTokens = { present: Object.hasOwn(body, 'max_tokens'), type: value === null ? 'null' : typeof value };
       if (typeof value === 'number') record.maxTokens.value = value;
+      if (Array.isArray(body.messages)) {
+        const latest = body.messages.filter(message => message.role === 'user').at(-1)?.content;
+        const text = typeof latest === 'string' ? latest : Array.isArray(latest)
+          ? latest.filter(part => part.type === 'text').map(part => part.text).join('\n') : '';
+        record.fixture = new Map([['只回答 OK', 'ok'], ['1+1', 'math'], ['/laugh', 'laugh'], ['/client/cancel', 'cancel']]).get(text) ?? 'other';
+      }
     } catch {}
   });
+  let upstreamResponse;
   const forwarded = http.request(target, { method: incoming.method, headers: incoming.headers }, response => {
+    upstreamResponse = response;
+    record.status = response.statusCode;
+    record.responseBytes = 0;
+    response.on('data', chunk => { record.responseBytes += chunk.length; });
+    response.on('close', () => { record.upstreamClosed = true; });
     outgoing.writeHead(response.statusCode, response.headers);
     response.on('error', () => outgoing.destroy());
     response.pipe(outgoing);
   });
   forwarded.on('error', () => { if (!outgoing.headersSent) outgoing.writeHead(502); outgoing.end(); });
-  outgoing.on('close', () => { if (!outgoing.writableFinished) forwarded.destroy(); });
+  outgoing.on('close', () => {
+    if (!outgoing.writableFinished) {
+      record.clientAborted = true;
+      upstreamResponse?.destroy();
+      forwarded.destroy();
+    }
+  });
   incoming.pipe(forwarded);
 });
 
@@ -83,16 +101,23 @@ async function select(providerId, modelId) {
   await expect(option).toBeVisible();
   await option.click();
   await page.keyboard.press('Escape');
+  await expect(button).toContainText(modelId);
 }
 
 async function send(prompt, expected, code = false) {
   const messages = page.locator('[data-ui~="chat.message"][data-message-id]:visible');
   const before = await messages.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-message-id')));
-  await page.locator('[data-ui~="chat.composer"] [contenteditable="true"]').first().fill(prompt);
+  const composer = page.locator('[data-ui~="chat.composer"] [contenteditable="true"]').first();
+  await composer.fill('');
+  await composer.pressSequentially(prompt, { delay: 20 });
+  await expect(composer).toHaveText(prompt);
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   const exclusions = before.map(id => `:not([data-message-id="${id}"])`).join('');
-  const answer = page.locator(`[data-ui~="chat.message"][data-message-id]${exclusions}:visible`)
-    .filter({ has: page.locator('.message-assistant') }).last();
+  const newMessages = page.locator(`[data-ui~="chat.message"][data-message-id]${exclusions}:visible`);
+  // Cherry virtualizes old bubbles when a large answer scrolls to the bottom.
+  // Verify the submitted fixture on the wire, rather than requiring that bubble
+  // to remain mounted after the answer has already arrived.
+  const answer = newMessages.filter({ has: page.locator('.message-assistant') }).last();
   await expect(answer).toBeVisible({ timeout: 45000 });
   if (code) {
     await expect.poll(async () => (await answer.locator('.code-viewer .line-content')
@@ -188,14 +213,25 @@ try {
   pass('ASCII material preserved exactly in the rendered code block');
   await drawing.locator('.code-viewer').last().screenshot({ path: path.join(evidence, 'ascii-laugh.png') });
 
-  await page.locator('[data-ui~="chat.composer"] [contenteditable="true"]').first().fill('/client/cancel');
+  const cancelStart = requests.length;
+  const composer = page.locator('[data-ui~="chat.composer"] [contenteditable="true"]').first();
+  await composer.fill('');
+  await composer.pressSequentially('/client/cancel', { delay: 20 });
+  await expect(composer).toHaveText('/client/cancel');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   const stop = page.getByRole('button', { name: 'Pause', exact: true }).last();
   await expect(stop).toBeVisible({ timeout: 20000 });
+  await expect.poll(() => requests.slice(cancelStart).some(record => record.fixture === 'cancel'
+    && record.status === 200 && record.responseBytes > 0), { timeout: 10000 }).toBe(true);
+  const canceled = requests.slice(cancelStart).find(record => record.fixture === 'cancel');
   await stop.click();
+  await expect.poll(() => canceled.clientAborted === true && canceled.upstreamClosed === true,
+    { timeout: 10000 }).toBe(true);
   await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeVisible({ timeout: 10000 });
   await select(cases[0].providerId, 'fakeapi-test');
+  const recoveryStart = requests.length;
   await send('1+1', '2');
+  assert(requests.slice(recoveryStart).some(record => record.fixture === 'math' && record.status === 200));
   await page.screenshot({ path: path.join(evidence, 'cancel-recovery.png') });
   pass('Stop generation releases the single request slot and allows a new reply');
   assert.equal(await page.locator('vite-error-overlay, #webpack-dev-server-client-overlay').count(), 0);

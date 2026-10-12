@@ -45,6 +45,7 @@ class Native:
     def __init__(self, directory, binary):
         self.directory = directory
         self.binary = binary
+        self.state = None
         self.config = str(directory / 'deployment/fakeapi.yaml')
         self.log = directory / 'server.log'
         self.process = None
@@ -57,13 +58,15 @@ class Native:
                  str(Path(self.config).parent)], env=self.env)
 
     def cli(self, *args):
-        return execute([str(self.binary), *args, '--config', self.config], env=self.env)
+        state = ['--state', str(self.state)] if self.state else []
+        return execute([str(self.binary), *args, '--config', self.config, *state], env=self.env)
 
     def start(self):
         self.output = self.log.open('ab')
         self.process = subprocess.Popen(
             [str(self.binary), 'serve', '--config', self.config,
-             '--listen', self.url.removeprefix('http://')],
+             '--listen', self.url.removeprefix('http://'),
+             *(['--state', str(self.state)] if self.state else [])],
             env=self.env, stdout=self.output, stderr=self.output, creationflags=FLAGS)
 
     def stop(self):
@@ -160,8 +163,15 @@ def request(backend, path, key=None, body=None, headers=None, status=200):
     except urllib.error.HTTPError as error:
         response = error
     with response:
-        assert response.code == status, f'{path}: expected {status}, got {response.code}'
-        return response.read().decode('utf-8'), response.headers
+        raw = response.read().decode('utf-8')
+        code = None
+        if response.code != status:
+            try:
+                code = json.loads(raw).get('error', {}).get('code')
+            except (ValueError, AttributeError):
+                pass
+        assert response.code == status, f'{path}: expected {status}, got {response.code}, code={code}'
+        return raw, response.headers
 
 
 def ready(backend):
@@ -209,6 +219,15 @@ def check(backend, passed):
     request(backend, '/v1beta/models', headers={'x-goog-api-key': primary})
     assert metadata(primary_id)['total_used'] == 0
     ok('authentication and four-protocol model discovery without quota charges')
+
+    if os.name == 'nt':
+        powershell, powershell_id = key('--total-limit', '4')
+        environment = dict(backend.env, FAKEAPI_POWERSHELL_TEST_KEY=powershell,
+                           FAKEAPI_POWERSHELL_TEST_URL=backend.url)
+        execute(['powershell.exe', '-NoProfile', '-NonInteractive', '-File',
+                 str(ROOT / 'scripts/test-powershell.ps1')], env=environment)
+        assert metadata(powershell_id)['total_used'] == 4
+        ok('Windows PowerShell direct API calls and Chinese UTF-8 without a desktop client')
 
     chat = {'model': 'fakeapi-test', 'messages': [{'role': 'user', 'content': '只回答 OK'}]}
     responses = {'model': 'fakeapi-test', 'input': '只回答 OK'}

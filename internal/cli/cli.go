@@ -31,7 +31,7 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-var Version = "0.5.0-dev"
+var Version = "0.5.0-alpha.1"
 var Commit = "unknown"
 
 const help = `FakeAPI - configurable AI protocol simulator

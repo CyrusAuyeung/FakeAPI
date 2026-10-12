@@ -154,7 +154,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 		if path == "/readyz" && s.closing.Load() {
 			status = 503
 		}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(status)
 		_ = json.NewEncoder(w).Encode(map[string]any{"status": map[bool]string{true: "stopping", false: "ok"}[s.closing.Load()]})
 		return
@@ -384,7 +384,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 		if aggregated.Usage.Source == "estimated" {
 			w.Header().Set("X-FakeAPI-Usage", "estimated")
 		}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(s.Config.Server.WriteTimeout.Value()))
 		_ = json.NewEncoder(w).Encode(protocol.Body(r, aggregated, time.Now().Unix()))
 	}
@@ -424,7 +424,7 @@ func (s *Server) models(w http.ResponseWriter, h *http.Request, p core.Protocol)
 			return map[string]any{"id": m.ID, "object": "model", "created": m.CreatedAt.Unix(), "owned_by": "fakeapi"}
 		}
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if path != prefix {
 		if !strings.HasPrefix(path, prefix+"/") {
 			protocol.WriteError(w, p, core.Err("not_found", 404, "Endpoint not found"))

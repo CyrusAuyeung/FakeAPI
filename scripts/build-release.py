@@ -9,11 +9,11 @@ import zipfile
 import re
 
 root = Path(__file__).resolve().parents[1]
-version = os.environ.get('GITHUB_REF_NAME', '0.5.0-dev').removeprefix('v')
+version = os.environ.get('GITHUB_REF_NAME', '0.5.0-alpha.1').removeprefix('v')
 if not re.fullmatch(r'\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?', version):
     if os.environ.get('GITHUB_REF', '').startswith('refs/tags/'):
         raise SystemExit('Release tag must use a semantic version.')
-    version = '0.5.0-dev'
+    version = '0.5.0-alpha.1'
 commit = os.environ.get('GITHUB_SHA', 'unknown')
 output = root / 'bin/releases'
 output.mkdir(parents=True, exist_ok=True)
@@ -29,7 +29,7 @@ for system, architecture in targets:
     name = 'fakeapi.exe' if system == 'windows' else 'fakeapi'
     environment = dict(os.environ, GOOS=system, GOARCH=architecture, CGO_ENABLED='0')
     subprocess.run(['go', 'build', '-trimpath', '-ldflags', f'-s -w -X fakeapi/internal/cli.Version={version} -X fakeapi/internal/cli.Commit={commit}', '-o', str(stage / name), './cmd/fakeapi'], cwd=root, env=environment, check=True)
-    for filename in ['LICENSE', 'README.md', 'README.en.md']:
+    for filename in ['LICENSE', 'README.md', 'README.en.md', 'CHANGELOG.md', 'compose.yaml']:
         shutil.copy2(root / filename, stage / filename)
     for dirname in ['assets', 'examples', 'docs', 'schemas']:
         shutil.copytree(root / dirname, stage / dirname, dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.go'))

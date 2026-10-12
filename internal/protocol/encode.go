@@ -87,7 +87,7 @@ func WriteError(w http.ResponseWriter, p core.Protocol, e *core.Error) {
 	if e.RetryAfter > 0 {
 		w.Header().Set("Retry-After", fmt.Sprint(e.RetryAfter))
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(e.Status)
 	_ = json.NewEncoder(w).Encode(ErrorBody(p, e))
 }

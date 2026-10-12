@@ -4,6 +4,7 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
@@ -31,9 +32,30 @@ jobs:
         run: test -z "$(gofmt -l cmd internal assets/embed.go examples/embed.go tests/mockupstream)"
       - run: go vet -mod=readonly ./...
       - run: go test -mod=readonly -count=1 ./...
-      - run: go build -mod=readonly -trimpath -o bin/ ./cmd/fakeapi
+      - name: Build candidate
+        shell: bash
+        env:
+          FAKEAPI_CANDIDATE_COMMIT: ${{ github.sha }}
+        run: go build -mod=readonly -trimpath -ldflags "-s -w -X fakeapi/internal/cli.Commit=$FAKEAPI_CANDIDATE_COMMIT" -o bin/ ./cmd/fakeapi
       - name: Native CLI and HTTP acceptance
         run: python scripts/runtime-smoke.py
+      - name: Checkout immutable upgrade baseline
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: b94edf5cc2986b595d1d061cbd5a7223b6747e82
+          path: .cache/upgrade-baseline
+          persist-credentials: false
+      - name: Build previous binary
+        working-directory: .cache/upgrade-baseline
+        shell: bash
+        run: |
+          mkdir -p ../previous
+          go build -mod=readonly -trimpath -ldflags '-s -w -X fakeapi/internal/cli.Commit=b94edf5cc2986b595d1d061cbd5a7223b6747e82' -o ../previous/ ./cmd/fakeapi
+      - name: Upgrade, downgrade and backup recovery
+        run: python scripts/upgrade-smoke.py
+      - name: Performance observations
+        if: runner.os == 'Linux'
+        run: python scripts/measure-performance.py --samples 256
       - name: Race detector
         run: go test -mod=readonly -race -count=1 ./...
       - name: Decoder fuzzing
