@@ -87,3 +87,60 @@ func TestAssetImportAndSchema(t *testing.T) {
 		t.Fatal("schema generation")
 	}
 }
+
+func TestAssetImportThroughLinkedParent(t *testing.T) {
+	root := t.TempDir()
+	realDir := filepath.Join(root, "real")
+	if e := os.Mkdir(realDir, 0700); e != nil {
+		t.Fatal(e)
+	}
+	alias := filepath.Join(root, "alias")
+	if e := os.Symlink(realDir, alias); e != nil {
+		t.Skipf("directory symlink unavailable: %v", e)
+	}
+	if e := Init("testing", alias, new(bytes.Buffer)); e != nil {
+		t.Fatal(e)
+	}
+	c, e := config.Load(filepath.Join(alias, "fakeapi.yaml"), true)
+	if e != nil {
+		t.Fatal(e)
+	}
+	source := filepath.Join(alias, "custom.txt")
+	if e = os.WriteFile(source, []byte("linked parent\n"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	a := config.Asset{ID: "custom", Kind: "text", Author: "tester", License: "MIT", Origin: "original"}
+	if e = ImportAsset(c, source, a, false); e != nil {
+		t.Fatal(e)
+	}
+	loaded, e := config.Load(filepath.Join(alias, "fakeapi.yaml"), true)
+	if e != nil || loaded.AssetData["custom"].Content != "linked parent\n" {
+		t.Fatalf("imported asset through linked parent: %v", e)
+	}
+}
+
+func TestAssetImportRejectsEscapingImportsDirectory(t *testing.T) {
+	dir := t.TempDir()
+	if e := Init("testing", dir, new(bytes.Buffer)); e != nil {
+		t.Fatal(e)
+	}
+	c, e := config.Load(filepath.Join(dir, "fakeapi.yaml"), true)
+	if e != nil {
+		t.Fatal(e)
+	}
+	outside := t.TempDir()
+	if e = os.Symlink(outside, filepath.Join(filepath.Dir(c.Assets.Manifest), "imports")); e != nil {
+		t.Skipf("directory symlink unavailable: %v", e)
+	}
+	source := filepath.Join(dir, "custom.txt")
+	if e = os.WriteFile(source, []byte("must not escape\n"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	a := config.Asset{ID: "custom", Kind: "text", Author: "tester", License: "MIT", Origin: "original"}
+	if e = ImportAsset(c, source, a, false); e == nil || e.Error() != "E_ASSET_PATH" {
+		t.Fatalf("escaping imports directory accepted: %v", e)
+	}
+	if _, e = os.Stat(filepath.Join(outside, "custom.txt")); !os.IsNotExist(e) {
+		t.Fatal("asset written outside manifest directory")
+	}
+}

@@ -35,7 +35,6 @@ jobs:
       - name: Native CLI and HTTP acceptance
         run: python scripts/runtime-smoke.py
       - name: Race detector
-        if: runner.os != 'Windows'
         run: go test -mod=readonly -race -count=1 ./...
       - name: Decoder fuzzing
         if: runner.os == 'Linux'
@@ -52,4 +51,5 @@ jobs:
         with:
           name: runtime-${{ runner.os }}-${{ runner.arch }}
           path: .cache/acceptance/*.json
+          include-hidden-files: true
           if-no-files-found: warn

@@ -8,7 +8,7 @@
 
 | 工作流 | 验收 |
 |---|---|
-| Go and runtime acceptance | Linux、Windows、macOS 的 Go 测试、vet、原生 CLI/HTTP；Linux/macOS race；Linux 解码 fuzz 和 Docker Compose 运行 |
+| Go and runtime acceptance | Linux、Windows、macOS 的 Go 测试、vet、原生 CLI/HTTP 和 race；Linux 解码 fuzz 和 Docker Compose 运行 |
 | Official SDK contracts | 六个锁定的 Python/Node 官方 SDK，普通/流式、历史、JSON、单工具、取消、模型列表和错误 |
 | Build release | 五个平台归档、SHA256、架构与随包文档；在 Linux、Windows、macOS 解压对应发行包并实际运行 |
 
@@ -50,4 +50,4 @@ GitHub Release 和 GHCR 镜像。含预发行后缀的版本标记为 prerelease
 SDK 通过不能直接证明桌面客户端界面与 Provider 配置兼容。
 Cherry Studio 是下一轮优先客户端，需要独立记录版本、四种 Provider、
 模型发现、字符画显示、流式回复、停止生成及多轮历史结果。
-Windows race、Linux/macOS arm64 原生运行和其他桌面客户端仍需要单独验收。
+其他系统架构的原生运行和其他桌面客户端仍需要单独验收。

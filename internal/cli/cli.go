@@ -474,7 +474,13 @@ func ImportAsset(c *config.Config, source string, a config.Asset, overwrite bool
 	if e = os.MkdirAll(filepath.Dir(target), 0700); e != nil {
 		return fmt.Errorf("E_ASSET_DIRECTORY")
 	}
-	if real, e := filepath.EvalSymlinks(filepath.Dir(target)); e != nil || absolute(real) != absolute(filepath.Join(base, "imports")) {
+	// Resolve the manifest directory too: Windows short paths and macOS /var
+	// aliases may resolve to a different spelling without leaving this directory.
+	realBase, e := filepath.EvalSymlinks(base)
+	if e != nil {
+		return fmt.Errorf("E_ASSET_PATH")
+	}
+	if real, e := filepath.EvalSymlinks(filepath.Dir(target)); e != nil || absolute(real) != absolute(filepath.Join(realBase, "imports")) {
 		return fmt.Errorf("E_ASSET_PATH")
 	}
 	if e = atomicWrite(target, b); e != nil {
