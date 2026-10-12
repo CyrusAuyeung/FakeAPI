@@ -95,7 +95,7 @@ async function send(prompt, expected, code = false) {
     .filter({ has: page.locator('.message-assistant') }).last();
   await expect(answer).toBeVisible({ timeout: 45000 });
   if (code) {
-    await expect.poll(async () => (await answer.locator('pre').last().innerText()).trimEnd(), { timeout: 45000 })
+    await expect.poll(async () => (await answer.locator('pre code').last().innerText()).trimEnd(), { timeout: 45000 })
       .toBe(expected.trimEnd());
   } else {
     await expect(answer.getByText(expected, { exact: true }).last()).toBeVisible({ timeout: 45000 });
