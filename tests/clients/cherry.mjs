@@ -190,7 +190,7 @@ try {
 
   await page.locator('[data-ui~="chat.composer"] [contenteditable="true"]').first().fill('/client/cancel');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
-  const stop = page.getByRole('button', { name: /^Stop/ }).last();
+  const stop = page.getByRole('button', { name: 'Pause', exact: true }).last();
   await expect(stop).toBeVisible({ timeout: 20000 });
   await stop.click();
   await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeVisible({ timeout: 10000 });
