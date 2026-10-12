@@ -33,15 +33,16 @@ jobs:
         shell: bash
         run: |
           mkdir -p .cache/cherry
-          curl --fail --location --retry 3 --output .cache/cherry/Cherry.AppImage https://github.com/CherryHQ/cherry-studio/releases/download/v2.1.6/Cherry-Studio-2.1.6-linux-x64.AppImage
+          curl --fail --location --retry 3 --connect-timeout 20 --max-time 180 --output .cache/cherry/Cherry.AppImage https://github.com/CherryHQ/cherry-studio/releases/download/v2.1.6/Cherry-Studio-2.1.6-linux-x64.AppImage
           printf '%s\n' 'd23be4e10a0f2e57acd8ff3b892764bccf115ac837e29229a532d5c4423e11f1  .cache/cherry/Cherry.AppImage' | sha256sum --check
           chmod +x .cache/cherry/Cherry.AppImage
           cd .cache/cherry
           ./Cherry.AppImage --appimage-extract > extraction.log
       - name: Prepare display dependencies
+        timeout-minutes: 5
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1 libsecret-1-0 fonts-noto-cjk
+          sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
+          sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y --no-install-recommends xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1 libsecret-1-0 fonts-noto-cjk
       - run: go build -mod=readonly -o bin/fakeapi ./cmd/fakeapi
       - name: Client UI, four protocols, ASCII, history, and cancellation
         env:
