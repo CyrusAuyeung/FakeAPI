@@ -114,7 +114,9 @@ async function send(prompt, expected, code = false) {
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   const exclusions = before.map(id => `:not([data-message-id="${id}"])`).join('');
   const newMessages = page.locator(`[data-ui~="chat.message"][data-message-id]${exclusions}:visible`);
-  await expect(newMessages.getByText(prompt, { exact: true }).last()).toBeVisible({ timeout: 10000 });
+  // Cherry virtualizes old bubbles when a large answer scrolls to the bottom.
+  // Verify the submitted fixture on the wire, rather than requiring that bubble
+  // to remain mounted after the answer has already arrived.
   const answer = newMessages.filter({ has: page.locator('.message-assistant') }).last();
   await expect(answer).toBeVisible({ timeout: 45000 });
   if (code) {
