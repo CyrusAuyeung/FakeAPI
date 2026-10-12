@@ -95,7 +95,8 @@ async function send(prompt, expected, code = false) {
     .filter({ has: page.locator('.message-assistant') }).last();
   await expect(answer).toBeVisible({ timeout: 45000 });
   if (code) {
-    await expect.poll(async () => (await answer.locator('pre code').last().innerText()).trimEnd(), { timeout: 45000 })
+    await expect.poll(async () => (await answer.locator('.code-viewer .line-content')
+      .evaluateAll(lines => lines.map(line => line.textContent).join('\n'))).trimEnd(), { timeout: 45000 })
       .toBe(expected.trimEnd());
   } else {
     await expect(answer.getByText(expected, { exact: true }).last()).toBeVisible({ timeout: 45000 });
@@ -183,8 +184,8 @@ try {
 
   await select(cases[0].providerId, 'fakeapi-frog');
   const laugh = readFileSync(path.join(process.env.FAKEAPI_TEST_ASSETS, 'nailong/laugh.txt'), 'utf8');
-  await send('/laugh', laugh, true);
-  await page.screenshot({ path: path.join(evidence, 'ascii-laugh.png') });
+  const drawing = await send('/laugh', laugh, true);
+  await drawing.locator('[data-ui="part:code-block"]').last().screenshot({ path: path.join(evidence, 'ascii-laugh.png') });
   pass('ASCII material preserved exactly in the rendered code block');
 
   await page.locator('[data-ui~="chat.composer"] [contenteditable="true"]').first().fill('/client/cancel');
