@@ -21,6 +21,16 @@ def main():
         backend = runtime.Native(Path(directory), ROOT / 'bin/fakeapi')
         config = Path(backend.config)
         source = config.read_text(encoding='utf-8').replace('write_timeout: 10s', 'write_timeout: 60s')
+        if os.environ.get('FAKEAPI_RECORD_STREAM') == '1':
+            # Exercise the public configurable pacing with no upstream AI.
+            source = source.replace('thinking: {enabled: true, channel: portable_text, text_asset: thinking-natural}',
+                                    'thinking: {enabled: true, channel: native, text_asset: thinking-natural}', 1)
+            source = source.replace('- id: fakeapi-frog\n  display_name: 奶蛙 · 自然\n  profile: instant',
+                                    '- id: fakeapi-frog\n  display_name: 奶蛙 · 自然\n  profile: natural', 1)
+            source = source.replace('first_output_delay: 300ms, thinking_to_body_delay: 300ms, graphemes_per_second: 180, chunk_size: 8,',
+                                    'first_output_delay: 1200ms, thinking_to_body_delay: 1200ms, graphemes_per_second: 450, chunk_size: 16,', 1)
+            source = source.replace('jitter: 20ms, pause_probability: 0.02, pause_duration: 100ms, max_total: 30s',
+                                    'jitter: 0ms, pause_probability: 0, pause_duration: 0ms, max_total: 30s', 1)
         wave = (config.parent / 'assets/nailong/wave.txt').read_text(encoding='utf-8')
         # A temporary slow route makes the real client's Stop button testable.
         source = source.replace('matchers:\n', 'matchers:\n  client-cancel:\n    any:\n    - {exact: /client/cancel}\n', 1)
@@ -29,6 +39,7 @@ def main():
                                 '  action: {type: preset, text: ' + json.dumps(wave * 4) + '}\n'
                                 '  behavior: {profile: natural, thinking: {enabled: false}}\n', 1)
         config.write_text(source, encoding='utf-8', newline='\n')
+        backend.cli('config', 'check')
         created = json.loads(backend.cli('keys', 'create', '--policy', 'test', '--format', 'json', '--max-concurrent', '1'))
         key = created['key']
         environment = os.environ.copy()

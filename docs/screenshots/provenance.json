@@ -1,0 +1,35 @@
+{
+  "client": "Cherry Studio 2.1.6",
+  "service_base": "FakeAPI v0.5.0-alpha.1",
+  "workflow": "https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38282479726",
+  "capture_commit": "1216c64",
+  "template": "testing (local presets, no upstream AI)",
+  "rendering": "Native screenshots; image files copied without modification.",
+  "fourth_image": "Existing repository ASCII material preview, not a runtime Web UI.",
+  "images": [
+    {
+      "file": "01-normal-tests.png",
+      "width": 1280,
+      "height": 900,
+      "sha256": "d97e433714cb9d30d32c9e847ee4681d53891dd915c6fbaeb4219c54a4c9c630"
+    },
+    {
+      "file": "02-default-ascii.png",
+      "width": 1280,
+      "height": 1453,
+      "sha256": "ed2a821313da39a03f62db8bfb4d72538b1fbafcacb973ff3f1f66340f33091e"
+    },
+    {
+      "file": "03-wave-easter-egg.png",
+      "width": 1280,
+      "height": 1250,
+      "sha256": "b11212efb7c9f2874e8cc197e94c28f51cd0cabe1772659b21ce753d6af95259"
+    },
+    {
+      "file": "04-four-built-in-poses.png",
+      "width": 1185,
+      "height": 1761,
+      "sha256": "c759fffe8b3e12cfdcd48ef6a33683a43b5af1d0af319d3c12fde4d02ab35d85"
+    }
+  ]
+}

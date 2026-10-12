@@ -78,6 +78,12 @@ Gemini 新式 `responseFormat.text.mimeType` 使用 `APPLICATION_JSON` 或
 报告中的 rendererErrors/knownWarnings 均为空。截图和 report.json 在该运行的 Artifacts。
 配置方法与边界见 [Cherry Studio](cherry-studio.md)。
 
+2026-10-13 补充展示记录：
+[四张静态效果图采集](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38282479726)
+与[原生思考流式录制](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38286857661) 均通过。
+后者确认 Chat 的 `reasoning_content` 输出、Cherry 的独立处理过程区域和折叠/展开操作，
+不扩大到原生思考历史重传的兼容声明。图片和输入场景见[效果展示](showcase.md)。
+
 开发预览验收提交 `2a257ea`（PR #2）的四套工作流均通过：
 
 - [三系统运行、升级恢复、race、fuzz、Docker 和 Linux 性能](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38271953449)。

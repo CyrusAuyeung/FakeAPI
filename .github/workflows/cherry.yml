@@ -5,12 +5,23 @@ on:
       - .github/workflows/cherry.yml
       - tests/clients/**
       - scripts/test-cherry.py
+      - scripts/encode-cherry-gif.py
       - internal/**
       - examples/**
       - assets/**
       - go.mod
       - go.sum
   workflow_dispatch:
+    inputs:
+      capture_mode:
+        description: 'acceptance：客户端验收；screenshots：静态效果图；streaming：原生思考流式 GIF'
+        type: choice
+        required: true
+        default: acceptance
+        options:
+          - acceptance
+          - screenshots
+          - streaming
 permissions:
   contents: read
 concurrency:
@@ -20,6 +31,8 @@ jobs:
   desktop:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      CAPTURE_MODE: ${{ inputs.capture_mode || 'acceptance' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
@@ -43,16 +56,27 @@ jobs:
         run: |
           sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
           sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y --no-install-recommends xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1 libsecret-1-0 fonts-noto-cjk
+          if [ "$CAPTURE_MODE" = streaming ]; then
+            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y --no-install-recommends ffmpeg
+          fi
       - run: go build -mod=readonly -o bin/fakeapi ./cmd/fakeapi
-      - name: Client UI, four protocols, ASCII, history, and cancellation
+      - name: Client acceptance or media capture
         env:
           CHERRY_EXECUTABLE: ${{ github.workspace }}/.cache/cherry/squashfs-root/CherryStudio
-        run: xvfb-run --auto-servernum --server-args='-screen 0 1280x900x24' python scripts/test-cherry.py
+          FAKEAPI_SHOWCASE: ${{ inputs.capture_mode == 'screenshots' && '1' || '0' }}
+          FAKEAPI_RECORD_STREAM: ${{ inputs.capture_mode == 'streaming' && '1' || '0' }}
+        run: |
+          screen=1280x900x24
+          if [ "$CAPTURE_MODE" != acceptance ]; then screen=1600x1900x24; fi
+          xvfb-run --auto-servernum --server-args="-screen 0 $screen" python scripts/test-cherry.py
+      - name: Encode native streaming GIF
+        if: ${{ inputs.capture_mode == 'streaming' }}
+        run: python scripts/encode-cherry-gif.py
       - name: Upload client screenshots and report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: cherry-studio-2.1.6
+          name: ${{ inputs.capture_mode == 'screenshots' && 'cherry-showcase' || inputs.capture_mode == 'streaming' && 'cherry-native-streaming' || 'cherry-studio-2.1.6' }}
           path: .cache/cherry-evidence/
           include-hidden-files: true
           if-no-files-found: warn

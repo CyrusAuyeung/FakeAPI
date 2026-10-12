@@ -28,6 +28,21 @@ Anthropic 必须有有效的最大输出设置；模型未知且上限未设置�
 在聊天页面检查正常结束、字符画等宽显示，以及流式生成中的停止按钮。
 该版本生成过程中以 **Pause** 按钮中断请求。
 
+四张真实效果图、输入示例和复现命令见[效果展示](showcase.md)。
+
+## 独立思考区域
+
+使用 `preset` 模板的 `fakeapi-frog` 时，可以把配置中
+`profiles.natural.thinking.channel` 从 `portable_text` 改为 `native`，保存后重启服务。
+OpenAI Chat 此时通过 `reasoning_content` 输出带 `[模拟思考]` 标识的预设文案，正文只包含回复。
+这是模拟内容；接入上游 AI 的行为另见[配置说明](configuration.md)。
+
+Cherry Studio 2.1.6 会把独立推理内容放入“处理过程”区域，完成后通过
+**Processed** 展开或收起，其中显示 **Deep reasoning**。
+[原生通道录制验收](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38286857661)
+已检查实际字段、独立显示、折叠/展开和流式字符画。
+这一记录覆盖单次回复的展示；非空 `reasoning_content` 的历史回传仍显式拒绝。
+
 ## 自动验收范围
 
 [Cherry Studio acceptance](https://github.com/CyrusAuyeung/FakeAPI/actions/workflows/cherry.yml)
@@ -43,9 +58,24 @@ Anthropic 必须有有效的最大输出设置；模型未知且上限未设置�
 Provider 添加界面的每个控件、模型自动发现、Windows/macOS 桌面版、其他版本和完整 Agent
 流程不属于这一组自动验收。
 
+## 重用工作流生成效果图
+
+在仓库 Actions 中打开 **Cherry Studio acceptance**，选择 **Run workflow** 和 `main`，
+再选择 `capture_mode`。无需为每次截图新建分支：
+
+| 模式 | 内容 | 下载的 Artifact |
+|---|---|---|
+| `acceptance` | 原有四协议、正文、多轮和暂停恢复验收；也是 PR 默认模式 | `cherry-studio-2.1.6` |
+| `screenshots` | 正常测试、默认字符画、挥手彩蛋和四个形象总览 | `cherry-showcase` |
+| `streaming` | 原生思考通道、实际流式字符画和折叠/展开操作的 GIF | `cherry-native-streaming` |
+
+命令行也可触发，例如 `gh workflow run cherry.yml --ref main -f capture_mode=screenshots`。
+截图模式使用本地预设；GIF 模式在临时配置中启用 `native` 通道并调整输出节奏。
+两种模式均不会调用真实 AI。录制文件只在 Artifact 中生成，不自动提交到仓库。
+
 ## 已处理的互操作细节
 
-- 空的 Chat `reasoning_content` 历史注解可重传；有内容的原生 reasoning 仍需独立支持。
+- Chat 可以返回独立 `reasoning_content`；历史中的空注解可重传，非空值仍显式拒绝。
 - Gemini `safetySettings` 按[官方字段定义](https://ai.google.dev/api/generate-content#SafetySetting)
   校验后可用于本地预设。本地预设不运行供应商过滤器；带非空原生设置的 Chat 上游转发会明确拒绝。
 - 客户端对新建本地 Provider 的回退标签可能记录缺少翻译的告警。

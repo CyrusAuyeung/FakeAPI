@@ -12,6 +12,15 @@ Cherry Studio 2.1.6 Linux x64 已通过四协议流式、多轮、ASCII 正文�
 客户端端点与模型上限的填写方法见 [Cherry Studio 配置](docs/cherry-studio.md)。
 没有 AI 客户端也可使用 [Windows PowerShell 教程](docs/windows-quickstart.md)。
 
+## 效果预览
+
+下面是 Cherry Studio 实际调用 FakeAPI 的效果：普通任务命中默认规则，返回内置奶蛙字符画。
+
+![普通任务触发捧腹大笑字符画](docs/screenshots/02-default-ascii.png)
+
+[查看四张静态效果图、场景说明和复现步骤](docs/showcase.md)。
+其中三张是客户端对话截图，一张是四个内置形象的素材总览。示例使用本地预设回复。
+
 ## 快速启动
 
 源码需要 Go 1.27.2。普通部署可以使用对应平台的可执行文件。

@@ -12,6 +12,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const evidence = path.join(root, '.cache/cherry-evidence');
 mkdirSync(evidence, { recursive: true });
 const key = process.env.FAKEAPI_CLIENT_KEY;
+const showcase = process.env.FAKEAPI_SHOWCASE === '1';
+const recordStream = process.env.FAKEAPI_RECORD_STREAM === '1';
 assert(key && process.env.CHERRY_EXECUTABLE && process.env.FAKEAPI_TEST_URL);
 const redact = value => String(value).replaceAll(key, '<redacted>');
 const passed = [];
@@ -66,7 +68,28 @@ const proxy = http.createServer((incoming, outgoing) => {
     upstreamResponse = response;
     record.status = response.statusCode;
     record.responseBytes = 0;
-    response.on('data', chunk => { record.responseBytes += chunk.length; });
+    let eventBuffer = '';
+    const decoder = new TextDecoder();
+    response.on('data', chunk => {
+      record.responseBytes += chunk.length;
+      if (!recordStream || !String(response.headers['content-type']).includes('text/event-stream')) return;
+      eventBuffer += decoder.decode(chunk, { stream: true });
+      let newline;
+      while ((newline = eventBuffer.indexOf('\n')) >= 0) {
+        const line = eventBuffer.slice(0, newline).trimEnd();
+        eventBuffer = eventBuffer.slice(newline + 1);
+        if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+        try {
+          const event = JSON.parse(line.slice(6));
+          for (const choice of event.choices ?? []) {
+            const delta = choice.delta ?? {};
+            if (typeof delta.reasoning_content === 'string' && delta.reasoning_content.length) record.nativeReasoningSeen = true;
+            if (typeof delta.content === 'string' && delta.content.includes('[模拟思考]')) record.simulatedThinkingInBody = true;
+          }
+        } catch {}
+      }
+      if (eventBuffer.length > 1048576) eventBuffer = '';
+    });
     response.on('close', () => { record.upstreamClosed = true; });
     outgoing.writeHead(response.statusCode, response.headers);
     response.on('error', () => outgoing.destroy());
@@ -120,15 +143,119 @@ async function send(prompt, expected, code = false) {
   const answer = newMessages.filter({ has: page.locator('.message-assistant') }).last();
   await expect(answer).toBeVisible({ timeout: 45000 });
   if (code) {
-    await expect.poll(async () => (await answer.locator('.code-viewer .line-content')
-      .evaluateAll(lines => lines.map(line => line.textContent).join('\n'))).trimEnd(), { timeout: 45000 })
-      .toBe(expected.trimEnd());
+    const allowed = (Array.isArray(expected) ? expected : [expected]).map(text => text.trimEnd());
+    await expect.poll(async () => allowed.includes((await answer.locator('.code-viewer .line-content')
+      .evaluateAll(lines => lines.map(line => line.textContent).join('\n'))).trimEnd()), { timeout: 45000 })
+      .toBe(true);
   } else {
     await expect(answer.getByText(expected, { exact: true }).last()).toBeVisible({ timeout: 45000 });
   }
   const id = await answer.getAttribute('data-message-id');
   await expect.poll(async () => (await dataApi('GET', `/messages/${id}`))?.status, { timeout: 45000 }).toBe('success');
   return answer;
+}
+
+async function recordStreaming() {
+  const viewport = { width: 1280, height: 1500 };
+  const clip = { x: 326, y: 44, width: 946, height: 1448 };
+  await page.setViewportSize(viewport);
+  await page.evaluate(() => window.api.preference.setMultiple({
+    'ui.theme_mode': 'dark', 'chat.message.thought.auto_collapse': false
+  }));
+  await page.reload();
+  await expect(page.locator('[data-ui="app.shell"]').first()).toBeVisible({ timeout: 60000 });
+  await select(cases[0].providerId, 'fakeapi-frog');
+  const prompt = '帮我写一个快速排序';
+  const expected = readFileSync(path.join(process.env.FAKEAPI_TEST_ASSETS, 'nailong/laugh.txt'), 'utf8').trimEnd();
+  const thinking = '[模拟思考] ' + readFileSync(path.join(process.env.FAKEAPI_TEST_ASSETS, 'thinking/natural.txt'), 'utf8').trimEnd();
+  const composer = page.locator('[data-ui~="chat.composer"] [contenteditable="true"]').first();
+  await composer.fill(prompt);
+  await expect(composer).toHaveText(prompt);
+  await page.waitForTimeout(500);
+
+  const directory = path.join(evidence, 'frames');
+  mkdirSync(directory, { recursive: true });
+  const frames = [];
+  const startedAt = performance.now();
+  let recording = true, frameFailure;
+  const capture = (async () => {
+    try {
+      while (recording && performance.now() - startedAt < 45000) {
+        const timestamp = performance.now() - startedAt;
+        const file = `frame-${String(frames.length).padStart(5, '0')}.png`;
+        await page.screenshot({ path: path.join(directory, file), clip });
+        const body = await page.locator('.code-viewer .line-content')
+          .evaluateAll(lines => lines.map(line => line.textContent).join('\n'));
+        const thinkingVisible = await page.locator('[data-testid="live-tool-group-content"], [data-testid="tool-history-content"]')
+          .getByText(thinking, { exact: true }).last().isVisible().catch(() => false);
+        const state = await page.locator('[data-testid="live-tool-group"], [data-testid="completed-process-trigger"]').evaluateAll(nodes => {
+          const node = nodes.at(-1);
+          return node ? { visible: node.getBoundingClientRect().height > 0,
+            expanded: node.getAttribute('data-testid') === 'live-tool-group' || node.getAttribute('aria-expanded') === 'true' } : null;
+        });
+        frames.push({ file, timestampMs: Math.round(timestamp), codeChars: body.trimEnd().length, thinkingVisible,
+          reasoningPanelVisible: !!state?.visible, reasoningExpanded: state?.expanded ?? null });
+        await page.waitForTimeout(Math.max(0, 125 - (performance.now() - startedAt - timestamp)));
+      }
+    } catch (error) { frameFailure = error; }
+  })();
+  try {
+    await page.waitForTimeout(600);
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Pause', exact: true }).last()).toBeVisible();
+    const answer = page.locator('[data-ui~="chat.message"][data-message-id]:visible')
+      .filter({ has: page.locator('.message-assistant') }).last();
+    await expect(answer).toBeVisible({ timeout: 30000 });
+    await expect.poll(async () => (await answer.locator('.code-viewer .line-content')
+      .evaluateAll(lines => lines.map(line => line.textContent).join('\n'))).trimEnd(), { timeout: 30000 }).toBe(expected);
+    const id = await answer.getAttribute('data-message-id');
+    await expect.poll(async () => (await dataApi('GET', `/messages/${id}`))?.status, { timeout: 10000 }).toBe('success');
+    // Cherry 2.1.6 groups structured reasoning into its native process accordion.
+    const toggle = answer.getByTestId('completed-process-trigger');
+    await expect(toggle).toBeVisible();
+    if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(answer.getByTestId('tool-history-content').getByText(thinking, { exact: true })).toBeVisible();
+    await page.waitForTimeout(800);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await page.waitForTimeout(600);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await page.waitForTimeout(1500);
+    const drawingBox = await answer.locator('.code-viewer').last().boundingBox();
+    const promptBox = await page.getByText(prompt, { exact: true }).last().boundingBox();
+    assert(drawingBox && drawingBox.y >= clip.y && drawingBox.y + drawingBox.height <= clip.y + clip.height,
+      'the complete ASCII must fit in the recording');
+    assert(promptBox && promptBox.y >= 100, 'the user prompt must remain below the fixed header');
+    await page.screenshot({ path: path.join(evidence, 'streaming-final.png'), clip });
+  } finally {
+    recording = false;
+    await capture;
+  }
+  if (frameFailure) throw frameFailure;
+  assert(frames.length > 30 && frames.some(frame => frame.thinkingVisible));
+  assert(frames.some(frame => frame.reasoningPanelVisible && frame.reasoningExpanded === true));
+  assert(frames.some(frame => frame.reasoningPanelVisible && frame.reasoningExpanded === false),
+    'the recording must demonstrate the real native reasoning collapse control');
+  assert(frames.some(frame => frame.codeChars > 0 && frame.codeChars < expected.length),
+    'recording must contain actual intermediate streaming states');
+  assert.equal(frames.at(-1).codeChars, expected.length);
+  assert(requests.some(record => record.path === cases[0].route && record.status === 200 && record.nativeReasoningSeen));
+  assert(!requests.some(record => record.simulatedThinkingInBody), 'simulated reasoning must not appear in the normal content stream');
+  const concat = ['ffconcat version 1.0'];
+  for (let index = 0; index < frames.length; index++) {
+    const duration = index + 1 < frames.length ? (frames[index + 1].timestampMs - frames[index].timestampMs) / 1000 : 0.125;
+    concat.push(`file 'frames/${frames[index].file}'`, `duration ${Math.max(0.001, duration).toFixed(3)}`);
+  }
+  concat.push(`file 'frames/${frames.at(-1).file}'`);
+  writeFileSync(path.join(evidence, 'frames.ffconcat'), concat.join('\n') + '\n');
+  writeFileSync(path.join(evidence, 'recording.json'), JSON.stringify({
+    client: 'Cherry Studio 2.1.6', viewport, clip, simulatedThinking: true, thinkingChannel: 'native', upstreamAI: false,
+    capture: 'Native client frames with their original timing', frames,
+    durationSeconds: (frames.at(-1).timestampMs + 125) / 1000
+  }, null, 2));
+  pass('recording: native reasoning_content, real foldable thinking panel, intermediate ASCII frames, and complete final drawing');
 }
 
 try {
@@ -196,6 +323,60 @@ try {
   await expect(page.locator('[data-ui="app.shell"]').first()).toBeVisible({ timeout: 60000 });
   await page.getByRole('button', { name: 'Chat', exact: true }).first().click();
 
+  if (recordStream) {
+    await recordStreaming();
+  } else if (showcase) {
+    // These are native client screenshots of the stock testing template.
+    // No responses, client markup, or artwork are rewritten for the capture.
+    await page.evaluate(() => window.api.preference.setMultiple({ 'ui.theme_mode': 'dark' }));
+    await page.reload();
+    await expect(page.locator('[data-ui="app.shell"]').first()).toBeVisible({ timeout: 60000 });
+    await select(cases[0].providerId, 'fakeapi-test');
+    await send('你好', /^你好！(?:有什么可以帮你？|今天想聊些什么？)$/);
+    await send('1+1', '2');
+    await send('你是什么模型', '我是 FakeAPI 模拟服务，当前展示模型是 fakeapi-test。这条回复来自本地预设。');
+    await page.waitForTimeout(2000); // Let the client's message fade-in finish.
+    await page.screenshot({ path: path.join(evidence, '01-normal-tests.png') });
+    pass('showcase: greeting, arithmetic, and transparent model identity from local presets');
+
+    await page.setViewportSize({ width: 1280, height: 1750 });
+    await select(cases[0].providerId, 'fakeapi-frog');
+    const drawings = ['wave', 'stand', 'laugh', 'think'].map(pose =>
+      readFileSync(path.join(process.env.FAKEAPI_TEST_ASSETS, `nailong/${pose}.txt`), 'utf8'));
+    const fallback = await send('帮我写一个快速排序', drawings, true);
+    await page.waitForTimeout(2000);
+    const naturalBox = await fallback.locator('.code-viewer').last().boundingBox();
+    assert(naturalBox);
+    const fallbackHeight = Math.ceil(naturalBox.height + 600);
+    await page.setViewportSize({ width: 1280, height: fallbackHeight });
+    await page.waitForTimeout(1000); // Native scrolling responds to window resize.
+    const fallbackBox = await fallback.locator('.code-viewer').last().boundingBox();
+    assert(fallbackBox && fallbackBox.y >= 0 && fallbackBox.y + fallbackBox.height <= fallbackHeight,
+      'the complete fallback ASCII must fit in the screenshot');
+    const promptBox = await page.getByText('帮我写一个快速排序', { exact: true }).last().boundingBox();
+    assert(promptBox && promptBox.y >= 100 && promptBox.y + promptBox.height <= fallbackHeight,
+      'the triggering user message must be visible below the fixed client header');
+    await page.screenshot({ path: path.join(evidence, '02-default-ascii.png') });
+    pass('showcase: an ordinary task receives one complete, unchanged bundled ASCII pose');
+
+    await page.setViewportSize({ width: 1280, height: 1250 });
+    const wave = await send('/frog', drawings[0], true);
+    await page.waitForTimeout(2000);
+    const waveBox = await wave.locator('.code-viewer').last().boundingBox();
+    assert(waveBox && waveBox.y >= 0 && waveBox.y + waveBox.height <= 1250,
+      'the complete waving ASCII must fit in the screenshot');
+    await page.screenshot({ path: path.join(evidence, '03-wave-easter-egg.png') });
+    pass('showcase: the /frog easter egg renders the complete waving pose');
+
+    assert(requests.some(record => record.path === cases[0].route && record.status === 200));
+    await page.setViewportSize({ width: 1200, height: 1500 });
+    await page.goto(new URL('docs/ascii-preview.html', `file://${root}/`).href);
+    await expect(page).toHaveTitle('FakeAPI · 内置 ASCII');
+    await expect(page.locator('main article')).toHaveCount(4);
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: path.join(evidence, '04-four-built-in-poses.png'), fullPage: true });
+    pass('showcase: existing repository preview, exactly four built-in poses');
+  } else {
   for (const item of cases) {
     const before = requests.length;
     await select(item.providerId, 'fakeapi-test');
@@ -234,6 +415,7 @@ try {
   assert(requests.slice(recoveryStart).some(record => record.fixture === 'math' && record.status === 200));
   await page.screenshot({ path: path.join(evidence, 'cancel-recovery.png') });
   pass('Stop generation releases the single request slot and allows a new reply');
+  }
   assert.equal(await page.locator('vite-error-overlay, #webpack-dev-server-client-overlay').count(), 0);
   assert.equal(errors.length, 0, `renderer errors: ${errors.join('\n').slice(0,1500)}`);
   pass('no renderer exceptions, unexpected console errors, or framework overlay in the tested flow');
@@ -247,7 +429,9 @@ try {
   console.error('FAIL', failure);
 } finally {
   writeFileSync(path.join(evidence, 'report.json'), JSON.stringify({ version: '2.1.6',
-    browser: 'Browser plugin not available; Playwright CDP in isolated GitHub runner', viewport: [1280,900],
+    browser: 'Browser plugin not available; Playwright CDP in isolated GitHub runner',
+    mode: recordStream ? 'streaming' : showcase ? 'screenshots' : 'acceptance',
+    viewport: page ? await page.viewportSize() : null,
     passed, success: !failure, failure, rendererErrors: errors, knownWarnings, requests,
     durationSeconds: Math.round((Date.now() - started) / 1000) }, null, 2));
   if (browser) await browser.close().catch(() => {});
