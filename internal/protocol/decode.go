@@ -387,6 +387,23 @@ func params(b map[string]any, r *core.Request, max, stop string) *core.Error {
 	}
 	return nil
 }
+func reasoningEffort(v any, r *core.Request) *core.Error {
+	if v == nil {
+		return nil
+	}
+	effort, ok := v.(string)
+	if !ok {
+		return core.Invalid("reasoning_effort")
+	}
+	switch effort {
+	case "none", "minimal", "low", "medium", "high", "xhigh", "max":
+		r.Parameters["reasoning_effort"] = effort
+		r.ThinkingOff = effort == "none"
+		return nil
+	default:
+		return core.Invalid("reasoning_effort")
+	}
+}
 func format(v any, r *core.Request, chat bool) *core.Error {
 	if v == nil {
 		return nil
@@ -514,6 +531,9 @@ func decodeChat(b map[string]any, r *core.Request) *core.Error {
 		max = "max_completion_tokens"
 	}
 	if e := params(b, r, max, "stop"); e != nil {
+		return e
+	}
+	if e := reasoningEffort(b["reasoning_effort"], r); e != nil {
 		return e
 	}
 	a, ok := b["messages"].([]any)

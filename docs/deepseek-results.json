@@ -1,0 +1,95 @@
+{
+  "provider": "DeepSeek",
+  "base_url": "https://api.deepseek.com",
+  "model": "deepseek-flash",
+  "started_at": "2026-10-13T06:00:50.093785+00:00",
+  "ai_call_limit": 12,
+  "max_output_tokens_per_call": 2048,
+  "checks": [
+    {
+      "check": "real provider authentication and model catalog"
+    },
+    {
+      "check": "hybrid initialization and model discovery without quota charges"
+    },
+    {
+      "check": "demo Key stays on the local greeting rule"
+    },
+    {
+      "check": "zero AI quota rejects before charging total usage"
+    },
+    {
+      "check": "latest user message controls routing; ordinary task returns one of four ASCII portraits"
+    },
+    {
+      "check": "invalid reasoning effort and unsupported JSON Schema reject before quota admission"
+    },
+    {
+      "check": "real Chat greeting uses full context; reasoning_effort none reaches DeepSeek",
+      "duration_ms": 593
+    },
+    {
+      "check": "real model identity request",
+      "duration_ms": 1459
+    },
+    {
+      "check": "real Chat SSE: native reasoning_content, body, usage, and DONE",
+      "duration_ms": 593,
+      "reasoning_chars": 114,
+      "content_chars": 1
+    },
+    {
+      "check": "real pelican bicycle reply contains valid SVG distinct from the bundled fixture",
+      "duration_ms": 4384,
+      "svg_chars": 2808
+    },
+    {
+      "check": "real Responses JSON through the Chat upstream adapter",
+      "duration_ms": 569
+    },
+    {
+      "check": "real Responses SSE with native completion",
+      "duration_ms": 564
+    },
+    {
+      "check": "real Anthropic JSON through the Chat upstream adapter",
+      "duration_ms": 581
+    },
+    {
+      "check": "real Anthropic SSE with native completion",
+      "duration_ms": 359
+    },
+    {
+      "check": "real Gemini JSON through the Chat upstream adapter",
+      "duration_ms": 1273
+    },
+    {
+      "check": "real Gemini SSE with native completion",
+      "duration_ms": 370
+    },
+    {
+      "check": "real JSON object mode without mock thinking text",
+      "duration_ms": 279
+    },
+    {
+      "check": "real simple math with thinking disabled",
+      "duration_ms": 553
+    },
+    {
+      "check": "exhausted AI quota keeps local ASCII available and rejected AI requests uncharged"
+    },
+    {
+      "check": "four-field request logs contain matched rules and no credentials"
+    },
+    {
+      "check": "real provider authentication error is sanitized and charged once",
+      "duration_ms": 172
+    }
+  ],
+  "status": "passed",
+  "binary_sha256": "f4e96ab3538a0714ac07eb1c3609b2c6cbeaca9c1b7c41603d25c9e5357405b8",
+  "binary_version": "FakeAPI 0.5.0-alpha.1 (unknown)",
+  "admitted_ai_calls": 12,
+  "successful_ai_calls": 12,
+  "finished_at": "2026-10-13T06:01:05.411230+00:00"
+}

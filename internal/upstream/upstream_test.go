@@ -12,6 +12,7 @@ import (
 
 	"fakeapi/internal/config"
 	"fakeapi/internal/core"
+	"fakeapi/internal/protocol"
 )
 
 func TestSSEParser(t *testing.T) {
@@ -108,5 +109,18 @@ func TestFullContextTranslation(t *testing.T) {
 	target.DeveloperRoleFallback = "system"
 	if e := Preflight(r, target, config.Upstream{}); e != nil {
 		t.Fatal(e)
+	}
+}
+
+func TestChatReasoningEffortReachesProvider(t *testing.T) {
+	for _, effort := range []string{"none", "low", "high", "max"} {
+		r, err := protocol.Decode(core.Chat, strings.NewReader(`{"model":"display","messages":[{"role":"user","content":"你好"}],"reasoning_effort":"`+effort+`"}`), "", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := Translate(r, config.Target{Model: config.StringValue{Literal: "actual"}})
+		if err != nil || body["reasoning_effort"] != effort {
+			t.Fatal("provider did not receive reasoning preference", body, err)
+		}
 	}
 }

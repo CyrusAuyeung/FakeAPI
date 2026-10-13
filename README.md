@@ -82,6 +82,8 @@ $env:FAKEAPI_UPSTREAM_SVG_MODEL = 'your-svg-model'
 
 混合模板只对带 `ai` 标签的 Key 启用问候、身份、测试题和鹈鹕四类上游规则。规则可独立关闭。展示模型、规则和默认目标可映射多个服务/真实模型。第一版上游采用 OpenAI Chat 兼容协议。
 
+DeepSeek 的环境变量、能力设置、真实思考与复现脚本见 [DeepSeek 混合模式](docs/deepseek.md)。
+
 离线开发时可先运行 `go run ./tests/mockupstream/cmd --listen 127.0.0.1:9099`，把四个环境变量改为本地地址、任意测试上游凭据、`mock-fast`、`mock-svg`。本程序不会自动加载 `.env`。
 
 ## 配置与管理
@@ -142,6 +144,9 @@ GitHub Actions 同时验收三系统原生运行及解压后的发行包，报�
 [Actions](https://github.com/CyrusAuyeung/FakeAPI/actions) 下载。详见 [自动运行验收](docs/acceptance.md)。
 跨版本升级与备份恢复使用 `scripts/upgrade-smoke.py`；
 `scripts/measure-performance.py` 提供 [性能观察](docs/performance.md)，没有固定速度门槛。
+
+真实上游验收为手动运行的 `scripts/test-deepseek.py`，使用临时部署和限定次数，
+需要自己的 DeepSeek Key；普通 CI 继续使用本地模拟上游。
 
 ## 范围与数据
 

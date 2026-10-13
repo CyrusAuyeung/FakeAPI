@@ -48,6 +48,8 @@ python scripts/runtime-smoke.py --docker --image fakeapi:ci
 ```
 
 常规验收不需要真实 AI、仓库 Secrets 或付费 Key。
+真实 DeepSeek 混合验收使用手动脚本 `scripts/test-deepseek.py`，不会由这些
+工作流自动触发。上游配置、费用边界和检查项见 [DeepSeek 混合模式](deepseek.md)。
 main、PR 和手动构建生成可下载的测试发行包；只有明确推送 `v*` 标签才会发布
 GitHub Release 和 GHCR 镜像。含预发行后缀的版本标记为 prerelease。
 标签发布先调用三系统完整 Go/运行验收；其失败会阻止发行构建和发布。

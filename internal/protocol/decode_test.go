@@ -47,3 +47,24 @@ func TestInvalidRequests(t *testing.T) {
 		}
 	}
 }
+
+func TestChatReasoningEffort(t *testing.T) {
+	for _, effort := range []string{"none", "minimal", "low", "medium", "high", "xhigh", "max"} {
+		r := decode(t, core.Chat, `{"model":"x","messages":[{"role":"user","content":"你好"}],"reasoning_effort":"`+effort+`"}`)
+		if r.Parameters["reasoning_effort"] != effort || r.ThinkingOff != (effort == "none") {
+			t.Fatal("reasoning preference lost", effort, r.Parameters, r.ThinkingOff)
+		}
+	}
+	for _, effort := range []string{`""`, `"unknown"`, `"low high"`, `true`, `1`, `{}`, `[]`} {
+		body := `{"model":"x","messages":[{"role":"user","content":"你好"}],"reasoning_effort":` + effort + `}`
+		if _, e := Decode(core.Chat, strings.NewReader(body), "", false); e == nil {
+			t.Fatal("invalid reasoning effort accepted", effort)
+		}
+	}
+	for _, suffix := range []string{"", `,"reasoning_effort":null`} {
+		r := decode(t, core.Chat, `{"model":"x","messages":[{"role":"user","content":"你好"}]`+suffix+`}`)
+		if _, ok := r.Parameters["reasoning_effort"]; ok || r.ThinkingOff {
+			t.Fatal("provider default replaced")
+		}
+	}
+}

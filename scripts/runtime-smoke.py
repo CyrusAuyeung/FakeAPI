@@ -42,7 +42,7 @@ def free_port():
 
 
 class Native:
-    def __init__(self, directory, binary):
+    def __init__(self, directory, binary, template='testing'):
         self.directory = directory
         self.binary = binary
         self.state = None
@@ -54,7 +54,7 @@ class Native:
         self.env = {k: v for k, v in os.environ.items()
                     if not k.startswith('FAKEAPI_')}
         self.backup = str(directory / 'backup.sqlite')
-        execute([str(binary), 'init', '--template', 'testing', '--dir',
+        execute([str(binary), 'init', '--template', template, '--dir',
                  str(Path(self.config).parent)], env=self.env)
 
     def cli(self, *args):

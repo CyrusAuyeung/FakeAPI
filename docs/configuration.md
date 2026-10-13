@@ -43,6 +43,12 @@ govern images, tools, JSON and developer-role conversion. Base URLs must be
 HTTP(S), without userinfo/query/fragment. Secrets are environment references.
 No automatic provider discovery, retries or provider failover occurs.
 
+Chat `reasoning_effort` is validated and forwarded to the upstream unchanged.
+Supported values are `none/minimal/low/medium/high/xhigh/max`; individual providers
+may support only a subset. `none` also disables local simulated reasoning.
+Omitting it preserves provider defaults. See [DeepSeek setup](deepseek.md) for
+provider-specific capability flags and opt-in live acceptance.
+
 Failure policy is `api_error` by default, or a finite `preset`/`frog` backup.
 Backup is allowed only before any downstream response is committed, and within
 the original request's remaining time/constraints. A failed partial stream is
