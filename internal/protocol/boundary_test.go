@@ -23,13 +23,23 @@ func TestEmptyChatReasoningReplay(t *testing.T) {
 			t.Fatalf("empty replay annotation changed conversation: %v", err)
 		}
 	}
-	for _, value := range []any{"private reasoning", " ", false, 1, []any{}, map[string]any{}} {
+	for _, text := range []string{"private reasoning", " "} {
+		body, _ := json.Marshal(map[string]any{"model": "test", "messages": []any{
+			map[string]any{"role": "assistant", "content": "OK", "reasoning_content": text},
+			map[string]any{"role": "user", "content": "1+1"},
+		}})
+		r, err := Decode(core.Chat, strings.NewReader(string(body)), "test", false)
+		if err != nil || r.Latest.Text != "1+1" || r.Messages[0].Parts[0].Kind != "reasoning" || r.Messages[0].Parts[0].Text != text {
+			t.Fatal("assistant reasoning replay lost or affected latest-user matching", err)
+		}
+	}
+	for _, value := range []any{false, 1, []any{}, map[string]any{}} {
 		body, _ := json.Marshal(map[string]any{"model": "test", "messages": []any{
 			map[string]any{"role": "assistant", "content": "OK", "reasoning_content": value},
 			map[string]any{"role": "user", "content": "1+1"},
 		}})
 		if _, err := Decode(core.Chat, strings.NewReader(string(body)), "test", false); err == nil {
-			t.Fatal("meaningful or invalid reasoning extension silently discarded")
+			t.Fatal("invalid reasoning extension accepted")
 		}
 	}
 }

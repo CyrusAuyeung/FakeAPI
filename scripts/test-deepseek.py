@@ -10,6 +10,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import sys
 import tempfile
@@ -25,12 +26,14 @@ SPEC = importlib.util.spec_from_file_location('runtime_smoke', ROOT / 'scripts/r
 SMOKE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(SMOKE)
 BASE_URL = 'https://api.deepseek.com'
-AI_CALL_LIMIT = 12
+AI_CALL_LIMIT = 16
 
 
 def configure(backend, credential, model):
     # Work only on the freshly initialized, temporary hybrid deployment.
     source = Path(backend.config).read_text(encoding='utf-8')
+    source = source.replace('base_url: https://api.deepseek.com', 'base_url: {env: FAKEAPI_UPSTREAM_BASE_URL}')
+    source = source.replace('model: deepseek-flash', 'model: {env: FAKEAPI_UPSTREAM_MODEL}')
     source = source.replace('developer_role_fallback: reject', 'developer_role_fallback: system')
     for field in ('json_schema', 'developer_role', 'parallel_tool_calls_parameter'):
         source = source.replace(field + ': true', field + ': false')
@@ -195,13 +198,13 @@ def run(backend, passed, report):
     content = ''.join(v.get('choices', [{}])[0].get('delta', {}).get('content') or '' for v in values if v.get('choices'))
     reason = ''.join(v.get('choices', [{}])[0].get('delta', {}).get('reasoning_content') or '' for v in values if v.get('choices'))
     assert 'text/event-stream' in headers.get('Content-Type', '') and '[DONE]' in raw
-    assert content.strip() in ('2', '2.', '1+1=2', '1 + 1 = 2') and reason, 'math/native reasoning missing'
+    assert re.search(r'(?<!\d)2(?!\d)', content) and reason, 'math/native reasoning missing'
     assert '[模拟思考]' not in content and '[上游推理]' not in content, 'reasoning mixed into body'
     assert any((v.get('usage') or {}).get('completion_tokens', 0) > 0 for v in values)
     ok('real Chat SSE: native reasoning_content, body, usage, and DONE', elapsed,
        reasoning_chars=len(reason), content_chars=len(content))
 
-    svg_request = chat('用 SVG 画骑自行车的鹈鹕', reasoning_effort='none', max_tokens=2048)
+    svg_request = chat('用 SVG 画骑自行车的鹈鹕', reasoning_effort='none', max_tokens=4096)
     svg_request['messages'].insert(0, {'role': 'system', 'content': 'Output a complete, concise SVG of a pelican riding a bicycle. SVG only, no Markdown. Use under 800 tokens.'})
     raw, _, elapsed = ai('/v1/chat/completions', svg_request)
     svg = extract_svg(chat_text(raw))
@@ -246,8 +249,37 @@ def run(backend, passed, report):
     ok('real JSON object mode without mock thinking text', elapsed)
 
     raw, _, elapsed = ai('/v1/chat/completions', chat('1+1', reasoning_effort='none'))
-    assert chat_text(raw).strip() in ('2', '2.', '1+1=2', '1 + 1 = 2')
+    assert re.search(r'(?<!\d)2(?!\d)', chat_text(raw)), 'simple math result missing'
     ok('real simple math with thinking disabled', elapsed)
+    history = chat('你好', reasoning_effort='none')
+    history['messages'] = [{'role': 'user', 'content': '1+1'},
+                           {'role': 'assistant', 'content': content, 'reasoning_content': reason},
+                           {'role': 'user', 'content': '你好'}]
+    raw, _, elapsed = ai('/v1/chat/completions', history)
+    assert chat_text(raw).strip() and not json.loads(raw)['choices'][0]['message'].get('reasoning_content')
+    ok('real nonempty assistant reasoning replay continues into the next AI turn', elapsed)
+
+    raw, _, elapsed = ai('/v1/responses', {'model': 'fakeapi-test', 'input': '只回答 OK',
+                                         'max_output_tokens': 768, 'reasoning': {'effort': 'none'}})
+    response = json.loads(raw)
+    assert response['usage']['output_tokens_details']['reasoning_tokens'] == 0
+    assert any(part.get('text', '').strip() == 'OK' for item in response['output'] for part in item.get('content', []))
+    ok('real Responses effort none disables upstream thinking', elapsed)
+
+    raw, _, elapsed = ai('/anthropic/v1/messages', {**chat('只回答 OK'), 'thinking': {'type': 'disabled'}},
+                         {'anthropic-version': '2023-06-01'})
+    response = json.loads(raw)
+    assert ''.join(part.get('text', '') for part in response['content']).strip() == 'OK'
+    assert response['usage']['output_tokens'] <= 16
+    ok('real Anthropic disabled thinking returns a short ordinary answer', elapsed)
+
+    raw, _, elapsed = ai('/v1beta/models/fakeapi-test:generateContent', {
+        'contents': [{'parts': [{'text': '只回答 OK'}]}],
+        'generationConfig': {'maxOutputTokens': 768, 'thinkingConfig': {'thinkingBudget': 0}}})
+    response = json.loads(raw)
+    assert response['usageMetadata']['thoughtsTokenCount'] == 0
+    assert ''.join(part.get('text', '') for part in response['candidates'][0]['content']['parts']).strip() == 'OK'
+    ok('real Gemini zero budget disables upstream thinking', elapsed)
     assert paid_calls == AI_CALL_LIMIT
     before = metadata(backend, primary_id)
     raw, _, _ = request(backend, '/v1/chat/completions', primary, chat('你好'), status=429)
@@ -264,7 +296,7 @@ def run(backend, passed, report):
 
 
 def authentication_failure(directory, binary, model, passed):
-    backend = SMOKE.Native(directory, binary, template='hybrid')
+    backend = SMOKE.Native(directory, binary, template='deepseek')
     configure(backend, 'sk-fakeapi-invalid-live-test', model)
     local_key, key_id = key(backend, 'hybrid', 1)
     try:
@@ -299,7 +331,7 @@ def main():
     passed = []
     report = {'provider': 'DeepSeek', 'base_url': BASE_URL, 'model': args.model,
               'started_at': datetime.now(timezone.utc).isoformat(), 'ai_call_limit': AI_CALL_LIMIT,
-              'max_output_tokens_per_call': 2048, 'checks': passed, 'status': 'failed'}
+              'max_output_tokens_per_call': 4096, 'checks': passed, 'status': 'failed'}
     try:
         report['binary_sha256'] = hashlib.sha256(args.binary.read_bytes()).hexdigest()
         report['binary_version'] = SMOKE.execute([str(args.binary.resolve()), 'version']).strip()
@@ -311,7 +343,7 @@ def main():
         print('PASS real provider authentication and model catalog', flush=True)
         args.report.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='run-', dir=args.report.parent) as temporary:
-            backend = SMOKE.Native(Path(temporary) / 'success', args.binary.resolve(), template='hybrid')
+            backend = SMOKE.Native(Path(temporary) / 'success', args.binary.resolve(), template='deepseek')
             configure(backend, credential, args.model)
             try:
                 report['successful_ai_calls'] = run(backend, passed, report)

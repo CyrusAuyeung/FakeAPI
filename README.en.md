@@ -11,14 +11,14 @@ The [Windows PowerShell tutorial](docs/windows-quickstart.md) needs no AI deskto
 A small, self-hosted AI API simulator with configurable presets, streaming,
 timing, JSON/function fixtures, and selective calls to real AI.
 
-Development preview: `0.5.0-alpha.1`. Six pinned official Python/Node SDKs have
+Development preview: `0.5.0-alpha.2`. Six pinned official Python/Node SDKs have
 passed the documented local contract checks. GUI and container validation is
 tracked separately in [compatibility](docs/compatibility.md).
 
 ## Run
 
 Requires Go 1.27.2 for source builds. Releases can run without Go.
-Download the [development preview](https://github.com/CyrusAuyeung/FakeAPI/releases/tag/v0.5.0-alpha.1)
+Download the [development preview](https://github.com/CyrusAuyeung/FakeAPI/releases/tag/v0.5.0-alpha.2)
 and follow the instructions included in the extracted archive.
 
 ```sh
@@ -58,7 +58,11 @@ Initialize with `--template hybrid` for selective real-AI calls. Set
 `FAKEAPI_UPSTREAM_MODEL`, and `FAKEAPI_UPSTREAM_SVG_MODEL`, then create a Key
 using `--policy hybrid`. Four AI rules apply only to Keys tagged `ai`. Matched
 AI calls forward complete supported context to an OpenAI Chat compatible
-upstream. Targets can map display models to multiple providers/models.
+upstream or the native Claude Messages adapter. Targets can map display models to multiple providers/models.
+
+`init --template deepseek|gpt|claude|gemini|glm|kimi` supplies six provider overlays
+with endpoints, models, reasoning controls and capability limits. Set only
+`FAKEAPI_UPSTREAM_API_KEY`. See [provider setup](docs/providers.md).
 
 For an offline upstream: `go run ./tests/mockupstream/cmd`; use
 `http://127.0.0.1:9099/v1`, an artificial upstream key, `mock-fast`, and
@@ -98,8 +102,10 @@ stores Key metadata/hashes and counters, never conversations. Admitted failures
 and cancellations remain counted. Model discovery and health checks are free.
 
 Text core, SSE, finite JSON and one-function round trips are implemented.
-Stored Responses, signed thinking, audio/video, multiple candidates and full
-agent execution are outside this version. See [protocol matrix](docs/protocol-matrix.md).
+Chat reasoning history, unsigned summary/thought replay and native Claude signed
+blocks on an Anthropic-to-Claude path are supported. Stored Responses,
+cross-provider signatures, audio/video, multiple candidates and full agent
+execution are outside this version. See [protocol matrix](docs/protocol-matrix.md).
 
 MIT covers software. Character-reference material and imported assets have
 separate provenance; see [asset notices](docs/ASSET_NOTICES.md) and

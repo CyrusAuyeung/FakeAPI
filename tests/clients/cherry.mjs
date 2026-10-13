@@ -56,10 +56,12 @@ const proxy = http.createServer((incoming, outgoing) => {
       record.maxTokens = { present: Object.hasOwn(body, 'max_tokens'), type: value === null ? 'null' : typeof value };
       if (typeof value === 'number') record.maxTokens.value = value;
       if (Array.isArray(body.messages)) {
+        record.reasoningHistoryPresent = body.messages.some(message =>
+          message.role === 'assistant' && typeof message.reasoning_content === 'string' && message.reasoning_content.length > 0);
         const latest = body.messages.filter(message => message.role === 'user').at(-1)?.content;
         const text = typeof latest === 'string' ? latest : Array.isArray(latest)
           ? latest.filter(part => part.type === 'text').map(part => part.text).join('\n') : '';
-        record.fixture = new Map([['只回答 OK', 'ok'], ['1+1', 'math'], ['/laugh', 'laugh'], ['/client/cancel', 'cancel']]).get(text) ?? 'other';
+        record.fixture = new Map([['只回答 OK', 'ok'], ['1+1', 'math'], ['/laugh', 'laugh'], ['/client/cancel', 'cancel'], ['/client/native', 'native']]).get(text) ?? 'other';
       }
     } catch {}
   });
@@ -72,7 +74,7 @@ const proxy = http.createServer((incoming, outgoing) => {
     const decoder = new TextDecoder();
     response.on('data', chunk => {
       record.responseBytes += chunk.length;
-      if (!recordStream || !String(response.headers['content-type']).includes('text/event-stream')) return;
+      if (showcase || !String(response.headers['content-type']).includes('text/event-stream')) return;
       eventBuffer += decoder.decode(chunk, { stream: true });
       let newline;
       while ((newline = eventBuffer.indexOf('\n')) >= 0) {
@@ -389,6 +391,16 @@ try {
   }
 
   await select(cases[0].providerId, 'fakeapi-frog');
+  const nativeStart = requests.length;
+  const wave = readFileSync(path.join(process.env.FAKEAPI_TEST_ASSETS, 'nailong/wave.txt'), 'utf8');
+  await send('/client/native', wave, true);
+  await send('1+1', '2');
+  assert(requests.slice(nativeStart).some(record => record.nativeReasoningSeen && record.status === 200),
+    'native thinking stream must be observed before continuing the conversation');
+  assert(requests.slice(nativeStart).some(record => record.fixture === 'math' && record.status === 200),
+    'conversation must continue after native thinking');
+  await page.screenshot({ path: path.join(evidence, 'native-thinking-multiturn.png') });
+  pass('native reasoning_content response followed by a successful next turn in the real client');
   const laugh = readFileSync(path.join(process.env.FAKEAPI_TEST_ASSETS, 'nailong/laugh.txt'), 'utf8');
   const drawing = await send('/laugh', laugh, true);
   pass('ASCII material preserved exactly in the rendered code block');

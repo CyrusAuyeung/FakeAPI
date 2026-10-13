@@ -8,6 +8,8 @@ from the same Go types; semantic reference/action checks remain in the loader.
 
 Three complete examples are distributed: preset, hybrid and deterministic
 testing. `init` rewrites their relative paths for the new deployment directory.
+Six provider overlays (`deepseek/gpt/claude/gemini/glm/kimi`) inherit the hybrid
+example during initialization; only an upstream credential is required.
 The original development plan is preserved, with later changes recorded in
 `docs/decisions/001-scope.md`.
 
@@ -38,16 +40,19 @@ Target resolution: rule action target → model target → default target. Upstr
 hold connection settings; targets hold real model IDs and capabilities. Disabled
 AI rules may omit a target. Enabled unresolved targets fail startup.
 
-Only `kind: openai_chat` is implemented upstream. Explicit capability flags
+`kind: openai_chat` and native `kind: anthropic` are implemented upstream. Explicit capability flags
 govern images, tools, JSON and developer-role conversion. Base URLs must be
 HTTP(S), without userinfo/query/fragment. Secrets are environment references.
 No automatic provider discovery, retries or provider failover occurs.
 
-Chat `reasoning_effort` is validated and forwarded to the upstream unchanged.
-Supported values are `none/minimal/low/medium/high/xhigh/max`; individual providers
-may support only a subset. `none` also disables local simulated reasoning.
-Omitting it preserves provider defaults. See [DeepSeek setup](deepseek.md) for
-provider-specific capability flags and opt-in live acceptance.
+Reasoning controls from all four inbound protocols are normalized, validated
+against `targets.*.reasoning`, and translated to provider parameters before
+quota admission. Display controls do not disable generation. Exact budgets
+require a supporting target. Omitted controls preserve provider defaults.
+Chat assistant reasoning can be preserved/omitted/rejected per target; unsigned
+summary/thought replay stays a display annotation. Native Claude signed blocks
+are preserved only on an Anthropic-to-Claude path. See [provider setup](providers.md)
+and [DeepSeek live acceptance](deepseek.md).
 
 Failure policy is `api_error` by default, or a finite `preset`/`frog` backup.
 Backup is allowed only before any downstream response is committed, and within

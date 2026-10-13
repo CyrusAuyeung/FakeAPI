@@ -232,7 +232,7 @@ func Load(file string, skipEnv bool) (*Config, error) {
 		}
 	}
 	for id, u := range c.Upstreams {
-		if !Identifier.MatchString(id) || u.Kind != "openai_chat" || u.MaxConcurrent < 1 {
+		if !Identifier.MatchString(id) || (u.Kind != "openai_chat" && u.Kind != "anthropic") || u.MaxConcurrent < 1 {
 			return nil, fmt.Errorf("E_CONFIG upstreams.%s", id)
 		}
 		if u.ReasoningTranslation == "" {
@@ -284,6 +284,51 @@ func Load(file string, skipEnv bool) (*Config, error) {
 		}
 		if t.Capabilities.JSONSchema && !t.Capabilities.JSONObject {
 			return nil, fmt.Errorf("E_CONFIG target capabilities")
+		}
+		if t.Reasoning.Mode == "" {
+			t.Reasoning.Mode = "effort"
+		}
+		switch t.Reasoning.Mode {
+		case "effort", "thinking", "thinking_effort", "google", "anthropic", "unsupported":
+		default:
+			return nil, fmt.Errorf("E_CONFIG reasoning mode")
+		}
+		if (t.Reasoning.Mode == "anthropic") != (c.Upstreams[t.Upstream].Kind == "anthropic") {
+			return nil, fmt.Errorf("E_CONFIG reasoning wire protocol")
+		}
+		if t.Reasoning.History == "" {
+			t.Reasoning.History = "omit"
+		}
+		if t.Reasoning.History != "omit" && t.Reasoning.History != "preserve" && t.Reasoning.History != "reject" {
+			return nil, fmt.Errorf("E_CONFIG reasoning history")
+		}
+		levels := map[string]bool{}
+		for _, effort := range t.Reasoning.AllowedEfforts {
+			switch effort {
+			case "none", "minimal", "low", "medium", "high", "xhigh", "max":
+			default:
+				return nil, fmt.Errorf("E_CONFIG reasoning effort")
+			}
+			if levels[effort] {
+				return nil, fmt.Errorf("E_CONFIG duplicate reasoning effort")
+			}
+			levels[effort] = true
+		}
+		if t.Reasoning.CanDisable != nil && !*t.Reasoning.CanDisable && levels["none"] {
+			return nil, fmt.Errorf("E_CONFIG reasoning disable support")
+		}
+		if t.Reasoning.DefaultEffort != "" && (t.Reasoning.DefaultEffort == "none" || len(levels) > 0 && !levels[t.Reasoning.DefaultEffort]) {
+			return nil, fmt.Errorf("E_CONFIG reasoning default effort")
+		}
+		if t.Reasoning.DefaultEffort != "" {
+			switch t.Reasoning.DefaultEffort {
+			case "minimal", "low", "medium", "high", "xhigh", "max":
+			default:
+				return nil, fmt.Errorf("E_CONFIG reasoning default effort")
+			}
+		}
+		if t.Reasoning.Budget && t.Reasoning.Mode != "google" && t.Reasoning.Mode != "anthropic" {
+			return nil, fmt.Errorf("E_CONFIG reasoning budget support")
 		}
 		c.Targets[id] = t
 	}

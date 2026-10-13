@@ -13,7 +13,16 @@
 [脱敏结果报告](deepseek-results.json) 记录了具体检查、时间和所测二进制的 SHA256。
 延迟是本次测试的观察值，模型内容与速度可能变化。
 
+`alpha.2` 的新增功能已另行完成五次真实 AI 调用、七项检查：非空推理历史下一轮，
+Chat/Responses/Anthropic/Gemini 的关闭思考，以及额度耗尽后的本地字符画。
+[新增功能报告](deepseek-reasoning-results.json) 保留了对应二进制 SHA256；
+使用 `python scripts/test-deepseek-reasoning.py` 可单独复测，无需重新生成 SVG。
+
 ## 初始化
+
+`v0.5.0-alpha.2` 推荐使用 `fakeapi init --template deepseek --dir runtime/deepseek`。
+这个模板已经设置端点、模型、能力和推理历史回传，只需设置上游 Key，详见
+[平台模板](providers.md)。以下手动配置保留给使用旧 `hybrid` 模板的部署。
 
 先从当前 main 源码构建；`reasoning_effort` 转发修复在 `v0.5.0-alpha.1` 发行包之后。
 
@@ -92,8 +101,9 @@ DeepSeek 默认启用思考，当前官方接口支持用 `none` 关闭，见
 
 Responses、Anthropic、Gemini 入站也可走这个 Chat 上游适配器；混合模板
 的 `reasoning_translation: omit` 会省略跨协议上游推理，保留正文。
-这不等于提供这些供应商的原生签名思考。其他入站协议的思考参数尚未映射为
-DeepSeek 的 `reasoning_effort`。
+这不等于提供这些供应商的原生签名思考。`alpha.2` 已将 Responses effort、
+Anthropic disabled/adaptive 和 Gemini zero budget/level 映射到 DeepSeek 的控制；
+精确的正 token 预算在该目标上明确拒绝，隐藏显示保持生成设置。
 
 鹈鹕回复可能包含说明和 Markdown 代码块。验收会抽取其中的 `<svg>…</svg>`
 检查 XML 完整性，API 保留原始正文，不强制模型只返回裸 SVG。
@@ -111,7 +121,7 @@ python scripts/test-deepseek.py --binary .\bin\fakeapi.exe
 脚本优先读取环境变量 `FAKEAPI_UPSTREAM_API_KEY`；若未设置，则在交互终端
 隐藏输入。自动调用方可使用 `--key-stdin` 传入一行 Key，不提供 Key 命令行参数。
 
-每轮最多 12 次有效模型生成：一般请求上限 768 tokens，SVG 上限 2048；
+每轮最多 16 次有效模型生成：一般请求上限 768 tokens，SVG 上限 4096；
 另有模型目录查询及一次无效凭据请求，用来检查真实上游认证错误。
 这是显式的付费上游验收，没有自动重试，不会在普通 GitHub Actions 中运行。
 失败后修正原因，再手动运行；重跑可能再次产生费用。
@@ -121,6 +131,7 @@ python scripts/test-deepseek.py --binary .\bin\fakeapi.exe
 - 四种入站协议的 JSON、可解析 SSE 和各自的正常结束事件。
 - 真实问候使用历史上下文，身份、数学和鹈鹕请求命中对应 AI 规则。
 - Chat 思考开关、原生 `reasoning_content`、正文与 usage。
+- 非空推理历史的下一轮真实聊天，以及其余三种入站协议的关闭思考映射。
 - JSON object 模式；不支持的 JSON Schema 在调用前拒绝。
 - 普通任务返回四个内置 ASCII 之一，`demo` Key 保持本地回答。
 - AI 额度为零、耗尽后的拒绝及本地 ASCII 仍可用；成功/失败的次数扣减。

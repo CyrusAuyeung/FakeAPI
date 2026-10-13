@@ -57,16 +57,32 @@ func Preflight(r *core.Request, t config.Target, u config.Upstream) *core.Error 
 				return core.Err("unsupported_capability", 400, "Target cannot accept this image")
 			}
 			if p.Opaque {
+				if u.Kind == "anthropic" && r.Protocol == core.Anthropic && (p.Kind == "thinking" || p.Kind == "redacted_thinking") {
+					continue
+				}
 				return core.Err("unsupported_capability", 400, "Content cannot be translated without losing information")
+			}
+			if p.Kind == "reasoning" && t.Reasoning.History == "reject" {
+				return core.Err("unsupported_capability", 400, "Target rejects reasoning history")
 			}
 		}
 	}
 	if len(r.Extras) > 0 {
 		return core.Err("unsupported_capability", 400, "Request contains parameters without an upstream equivalent")
 	}
+	if _, e := reasoningParameters(r, t); e != nil {
+		return e
+	}
 	return nil
 }
 func Translate(r *core.Request, t config.Target) (map[string]any, *core.Error) {
+	if t.Reasoning.Mode == "anthropic" {
+		return translateAnthropic(r, t)
+	}
+	reasoning, err := reasoningParameters(r, t)
+	if err != nil {
+		return nil, err
+	}
 	messages := []any{}
 	pending := map[string]string{}
 	for _, m := range r.Messages {
@@ -76,8 +92,13 @@ func Translate(r *core.Request, t config.Target) (map[string]any, *core.Error) {
 		}
 		text := []any{}
 		calls := []any{}
+		history := ""
 		for _, p := range m.Parts {
 			switch p.Kind {
+			case "reasoning":
+				if t.Reasoning.History == "preserve" {
+					history += p.Text
+				}
 			case "text":
 				text = append(text, map[string]any{"type": "text", "text": p.Text})
 			case "image":
@@ -115,9 +136,29 @@ func Translate(r *core.Request, t config.Target) (map[string]any, *core.Error) {
 		if len(text) > 0 || len(calls) > 0 {
 			v := map[string]any{"role": role}
 			if len(text) > 0 {
-				v["content"] = text
+				plain := ""
+				allText := true
+				for _, part := range text {
+					m := object(part)
+					if m["type"] != "text" {
+						allText = false
+						break
+					}
+					if plain != "" {
+						plain += "\n"
+					}
+					plain += stringValue(m["text"])
+				}
+				if allText {
+					v["content"] = plain
+				} else {
+					v["content"] = text
+				}
 			} else {
 				v["content"] = nil
+			}
+			if history != "" {
+				v["reasoning_content"] = history
 			}
 			if len(calls) > 0 {
 				v["tool_calls"] = calls
@@ -136,6 +177,12 @@ func Translate(r *core.Request, t config.Target) (map[string]any, *core.Error) {
 		body["stop"] = r.Stop
 	}
 	for k, v := range r.Parameters {
+		if k == "reasoning_effort" {
+			continue
+		}
+		body[k] = v
+	}
+	for k, v := range reasoning {
 		body[k] = v
 	}
 	if r.Stream {
@@ -192,6 +239,9 @@ func New(u config.Upstream) *Client {
 }
 func (c *Client) Close() { c.HTTP.CloseIdleConnections() }
 func (c *Client) Run(ctx context.Context, r *core.Request, t config.Target, u config.Upstream, limits config.Server, emit func(core.Event) error) *core.Error {
+	if u.Kind == "anthropic" {
+		return c.runAnthropic(ctx, r, t, u, limits, emit)
+	}
 	body, e := Translate(r, t)
 	if e != nil {
 		return e
@@ -306,6 +356,9 @@ func (c *Client) Run(ctx context.Context, r *core.Request, t config.Target, u co
 		if e := markFirst(); e != nil {
 			return e
 		}
+		if r.ThinkingOff {
+			return nil
+		}
 		if r.Protocol == core.Chat {
 			return output(core.Event{Kind: "reasoning_delta", Text: s})
 		}
@@ -331,7 +384,7 @@ func (c *Client) Run(ctx context.Context, r *core.Request, t config.Target, u co
 		displayed := result
 		if r.Protocol != core.Chat {
 			displayed.Reasoning = ""
-			if u.ReasoningTranslation == "portable_text" && result.Reasoning != "" {
+			if u.ReasoningTranslation == "portable_text" && result.Reasoning != "" && !r.ThinkingOff {
 				displayed.Text = "[上游推理] " + result.Reasoning + "\n\n" + result.Text
 				if usageProvided {
 					result.Usage.Visible += result.Usage.Reasoning

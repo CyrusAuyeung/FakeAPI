@@ -143,6 +143,14 @@ func Body(r *core.Request, result core.Result, created int64) M {
 		return ResponseObject(r, result, created, "completed")
 	case core.Anthropic:
 		content := []any{}
+		for _, part := range result.Thinking {
+			if part.Kind == "thinking" {
+				content = append(content, M{"type": "thinking", "thinking": part.Text, "signature": part.Signature})
+			}
+			if part.Kind == "redacted_thinking" {
+				content = append(content, M{"type": "redacted_thinking", "data": part.Data})
+			}
+		}
 		if result.Tool != nil {
 			content = append(content, M{"type": "tool_use", "id": result.Tool.ID, "name": result.Tool.Name, "input": objFromJSON(result.Tool.Arguments)})
 		} else {
@@ -278,7 +286,7 @@ func (s *Stream) openText() error {
 		}
 		return s.wire("response.content_part.added", M{"output_index": s.index, "content_index": 0, "item_id": "msg_" + s.Result.ID, "part": M{"type": "output_text", "text": "", "annotations": []any{}, "logprobs": []any{}}})
 	case core.Anthropic:
-		return s.wire("content_block_start", M{"type": "content_block_start", "index": 0, "content_block": M{"type": "text", "text": ""}})
+		return s.wire("content_block_start", M{"type": "content_block_start", "index": s.index, "content_block": M{"type": "text", "text": ""}})
 	}
 	return nil
 }
@@ -290,6 +298,35 @@ func (s *Stream) Emit(e core.Event) error {
 		return err
 	}
 	switch e.Kind {
+	case "thinking_block":
+		if s.Request.Protocol != core.Anthropic || e.Part == nil || s.textOpen || s.toolOpen {
+			return fmt.Errorf("E_STREAM_THINKING")
+		}
+		part := *e.Part
+		s.Result.Thinking = append(s.Result.Thinking, part)
+		block := M{"type": part.Kind}
+		if part.Kind == "thinking" {
+			block["thinking"] = ""
+		} else if part.Kind == "redacted_thinking" {
+			block["data"] = part.Data
+		} else {
+			return fmt.Errorf("E_STREAM_THINKING")
+		}
+		if err := s.wire("content_block_start", M{"type": "content_block_start", "index": s.index, "content_block": block}); err != nil {
+			return err
+		}
+		if part.Kind == "thinking" {
+			if err := s.wire("content_block_delta", M{"type": "content_block_delta", "index": s.index, "delta": M{"type": "thinking_delta", "thinking": part.Text}}); err != nil {
+				return err
+			}
+			if err := s.wire("content_block_delta", M{"type": "content_block_delta", "index": s.index, "delta": M{"type": "signature_delta", "signature": part.Signature}}); err != nil {
+				return err
+			}
+		}
+		if err := s.wire("content_block_stop", M{"type": "content_block_stop", "index": s.index}); err != nil {
+			return err
+		}
+		s.index++
 	case "reasoning_delta":
 		s.Result.Reasoning += e.Text
 		switch s.Request.Protocol {
@@ -323,7 +360,7 @@ func (s *Stream) Emit(e core.Event) error {
 		case core.Responses:
 			return s.wire("response.output_text.delta", M{"output_index": s.index, "content_index": 0, "item_id": "msg_" + s.Result.ID, "delta": e.Text, "logprobs": []any{}})
 		case core.Anthropic:
-			return s.wire("content_block_delta", M{"type": "content_block_delta", "index": 0, "delta": M{"type": "text_delta", "text": e.Text}})
+			return s.wire("content_block_delta", M{"type": "content_block_delta", "index": s.index, "delta": M{"type": "text_delta", "text": e.Text}})
 		default:
 			return s.geminiParts([]any{M{"text": e.Text}})
 		}
@@ -341,7 +378,7 @@ func (s *Stream) Emit(e core.Event) error {
 		case core.Responses:
 			return s.wire("response.output_item.added", M{"output_index": s.index, "item": functionItem(s.Result, "in_progress")})
 		case core.Anthropic:
-			return s.wire("content_block_start", M{"type": "content_block_start", "index": 0, "content_block": M{"type": "tool_use", "id": t.ID, "name": t.Name, "input": M{}}})
+			return s.wire("content_block_start", M{"type": "content_block_start", "index": s.index, "content_block": M{"type": "tool_use", "id": t.ID, "name": t.Name, "input": M{}}})
 		}
 	case "tool_args_delta":
 		if s.Result.Tool == nil {
@@ -354,7 +391,7 @@ func (s *Stream) Emit(e core.Event) error {
 		case core.Responses:
 			return s.wire("response.function_call_arguments.delta", M{"output_index": s.index, "item_id": "fc_" + s.Result.ID, "delta": e.Text})
 		case core.Anthropic:
-			return s.wire("content_block_delta", M{"type": "content_block_delta", "index": 0, "delta": M{"type": "input_json_delta", "partial_json": e.Text}})
+			return s.wire("content_block_delta", M{"type": "content_block_delta", "index": s.index, "delta": M{"type": "input_json_delta", "partial_json": e.Text}})
 		}
 	case "tool_done":
 		if s.Request.Protocol == core.Gemini {
@@ -437,7 +474,7 @@ func (s *Stream) finish() error {
 			return e
 		}
 	case core.Anthropic:
-		if e := s.wire("content_block_stop", M{"type": "content_block_stop", "index": 0}); e != nil {
+		if e := s.wire("content_block_stop", M{"type": "content_block_stop", "index": s.index}); e != nil {
 			return e
 		}
 		var stop any

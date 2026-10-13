@@ -18,7 +18,6 @@ import (
 	"time"
 
 	builtin "fakeapi/assets"
-	"fakeapi/examples"
 	"fakeapi/internal/config"
 	"fakeapi/internal/core"
 	"fakeapi/internal/preset"
@@ -31,12 +30,12 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-var Version = "0.5.0-alpha.1"
+var Version = "0.5.0-alpha.2"
 var Commit = "unknown"
 
 const help = `FakeAPI - configurable AI protocol simulator
 Commands:
-  init --template preset|hybrid|testing --dir PATH [--shared-config]
+  init --template preset|hybrid|testing|deepseek|gpt|claude|gemini|glm|kimi --dir PATH [--shared-config]
   serve --config FILE [--listen ADDR] [--state FILE]
   config check|show --config FILE [--skip-env] [--redact]
   keys create|import|list|show|revoke|update|reset-usage --config FILE
@@ -91,7 +90,7 @@ func run(args []string, out, errout io.Writer) error {
 	file := f.String("config", env("FAKEAPI_CONFIG", "fakeapi.yaml"), "Configuration file")
 	state := f.String("state", env("FAKEAPI_STATE", ""), "SQLite override")
 	listen := f.String("listen", env("FAKEAPI_LISTEN", ""), "Listen override")
-	template := f.String("template", "preset", "preset, hybrid or testing")
+	template := f.String("template", "preset", "preset, hybrid, testing, deepseek, gpt, claude, gemini, glm or kimi")
 	dir := f.String("dir", ".", "Initialization directory")
 	sharedConfig := f.Bool("shared-config", false, "Readable configuration/assets for a separate container user; no credentials or database are created")
 	skip := f.Bool("skip-env", false, "Skip environment presence validation")
@@ -392,15 +391,12 @@ func initDeployment(template, dir string, shared bool, out io.Writer) error {
 	if shared {
 		directoryMode, fileMode = 0755, 0644
 	}
-	if template != "preset" && template != "hybrid" && template != "testing" {
-		return fmt.Errorf("E_USAGE template")
-	}
-	b, e := examples.Files.ReadFile(template + "/fakeapi.yaml")
+	b, envExample, e := initializationTemplate(template)
 	if e != nil {
 		return fmt.Errorf("E_INIT_TEMPLATE")
 	}
 	b = []byte(strings.ReplaceAll(string(b), "../../", ""))
-	files := map[string][]byte{"fakeapi.yaml": b, ".env.example": []byte("# Export these explicitly; the binary does not load .env automatically.\nFAKEAPI_UPSTREAM_BASE_URL=http://127.0.0.1:9099/v1\nFAKEAPI_UPSTREAM_API_KEY=\nFAKEAPI_UPSTREAM_MODEL=mock-fast\nFAKEAPI_UPSTREAM_SVG_MODEL=mock-svg\n")}
+	files := map[string][]byte{"fakeapi.yaml": b, ".env.example": envExample}
 	e = fs.WalkDir(builtin.Files, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err

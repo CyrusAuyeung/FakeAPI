@@ -1,0 +1,41 @@
+{
+  "provider": "DeepSeek",
+  "model": "deepseek-flash",
+  "status": "passed",
+  "started_at": "2026-10-13T08:02:04.260376+00:00",
+  "ai_call_limit": 5,
+  "max_output_tokens_per_call": 768,
+  "checks": [
+    {
+      "check": "real native Chat reasoning stream",
+      "duration_ms": 1061
+    },
+    {
+      "check": "nonempty reasoning history replay and disabled next Chat turn",
+      "duration_ms": 1486
+    },
+    {
+      "check": "Responses effort none maps to real upstream disable",
+      "duration_ms": 503
+    },
+    {
+      "check": "Anthropic disabled thinking produces a short real answer",
+      "duration_ms": 664
+    },
+    {
+      "check": "Gemini zero budget maps to real upstream disable",
+      "duration_ms": 861
+    },
+    {
+      "check": "reasoning replay still permits local ASCII after AI quota exhaustion"
+    },
+    {
+      "check": "request logs contain exactly four fields and no credentials"
+    }
+  ],
+  "binary_sha256": "6c2b1ecceb478400a87668d14722d1ff1a84d46c730aa590f04d8654f478ed30",
+  "binary_version": "FakeAPI 0.5.0-alpha.2 (unknown)",
+  "admitted_ai_calls": 5,
+  "successful_ai_calls": 5,
+  "finished_at": "2026-10-13T08:02:10.132147+00:00"
+}

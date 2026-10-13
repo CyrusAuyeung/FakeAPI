@@ -1,0 +1,50 @@
+# Provider overlay for init --template gpt; inherits hybrid rules and assets.
+# API fields checked 2026-10-13: https://developers.openai.com/api/docs/models/gpt-6-luna
+# Credentials are environment references. Change both model targets when needed.
+upstreams:
+  primary:
+    kind: openai_chat
+    base_url: 'https://api.openai.com/v1'
+    api_key_env: FAKEAPI_UPSTREAM_API_KEY
+    max_concurrent: 4
+    timeouts: {connect: 5s, first_event: 30s, idle: 30s, total: 120s}
+    reasoning_translation: omit
+targets:
+  primary-fast:
+    upstream: primary
+    model: 'gpt-6-luna'
+    max_tokens_parameter: max_completion_tokens
+    developer_role_fallback: system
+    capabilities:
+      images: false
+      tools: false
+      json_object: true
+      json_schema: true
+      developer_role: true
+      parallel_tool_calls_parameter: false
+    reasoning:
+      mode: effort
+      history: omit
+      allowed_efforts: [none, low, medium, high, xhigh, max]
+      default_effort: medium
+      can_disable: true
+      budget: false
+  primary-quality:
+    upstream: primary
+    model: 'gpt-6-luna'
+    max_tokens_parameter: max_completion_tokens
+    developer_role_fallback: system
+    capabilities:
+      images: false
+      tools: false
+      json_object: true
+      json_schema: true
+      developer_role: true
+      parallel_tool_calls_parameter: false
+    reasoning:
+      mode: effort
+      history: omit
+      allowed_efforts: [none, low, medium, high, xhigh, max]
+      default_effort: medium
+      can_disable: true
+      budget: false

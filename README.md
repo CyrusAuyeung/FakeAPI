@@ -6,7 +6,7 @@
 
 轻量、可自部署的 AI API 模拟服务。用规则返回预设文案、字符画、JSON 或单次工具调用，也可以只把指定测试请求交给真实 AI。
 
-当前为 `0.5.0-alpha.1` 开发预览版。已实现四种入站协议的文本核心和流式输出，并通过六个锁定的官方 SDK 的指定调用测试。桌面客户端和容器的完整发布验收状态见 [兼容记录](docs/compatibility.md)。
+当前为 `0.5.0-alpha.2` 开发预览版。已实现四种入站协议的文本核心和流式输出，并通过六个锁定的官方 SDK 的指定调用测试。桌面客户端和容器的完整发布验收状态见 [兼容记录](docs/compatibility.md)。
 
 Cherry Studio 2.1.6 Linux x64 已通过四协议流式、多轮、ASCII 正文和暂停恢复验收。
 客户端端点与模型上限的填写方法见 [Cherry Studio 配置](docs/cherry-studio.md)。
@@ -24,7 +24,7 @@ Cherry Studio 2.1.6 Linux x64 已通过四协议流式、多轮、ASCII 正文�
 ## 快速启动
 
 源码需要 Go 1.27.2。普通部署可以使用对应平台的可执行文件。
-[下载开发预览版](https://github.com/CyrusAuyeung/FakeAPI/releases/tag/v0.5.0-alpha.1)，
+[下载开发预览版](https://github.com/CyrusAuyeung/FakeAPI/releases/tag/v0.5.0-alpha.2)，
 解压后按随包教程初始化、创建 Key 并启动。
 
 Windows PowerShell：
@@ -80,7 +80,10 @@ $env:FAKEAPI_UPSTREAM_SVG_MODEL = 'your-svg-model'
 .\bin\fakeapi.exe serve --config .\runtime\hybrid\fakeapi.yaml
 ```
 
-混合模板只对带 `ai` 标签的 Key 启用问候、身份、测试题和鹈鹕四类上游规则。规则可独立关闭。展示模型、规则和默认目标可映射多个服务/真实模型。第一版上游采用 OpenAI Chat 兼容协议。
+混合模板只对带 `ai` 标签的 Key 启用问候、身份、测试题和鹈鹕四类上游规则。规则可独立关闭。展示模型、规则和默认目标可映射多个服务/真实模型。上游支持 OpenAI Chat 兼容接口和原生 Claude Messages。
+
+`init --template deepseek|gpt|claude|gemini|glm|kimi` 提供六个平台的混合模板，
+只需设置上游 Key。默认模型、思考开关、历史回传和能力边界见 [平台模板](docs/providers.md)。
 
 DeepSeek 的环境变量、能力设置、真实思考与复现脚本见 [DeepSeek 混合模式](docs/deepseek.md)。
 
@@ -152,7 +155,10 @@ GitHub Actions 同时验收三系统原生运行及解压后的发行包，报�
 
 服务记录的请求日志恰好四个字段：`time/model/duration_ms/rule`。不保存请求正文、回复、图片、推理、IP 或 Key 原文。额度统计获准执行的请求，失败和取消也保留已扣次数；模型发现和健康检查不扣生成额度。
 
-支持有限 JSON/工具 fixture；服务不执行工具。Responses 采用客户端重传上下文的无状态模式。原生签名思考、有状态 Responses、音视频生成、多候选和完整 Agent 循环属于后续范围。[协议范围](docs/protocol-matrix.md) 列出具体限制。
+支持有限 JSON/工具 fixture；服务不执行工具。Responses 采用客户端重传上下文的无状态模式。
+Chat 推理历史、普通 summary/thought 注解和 Claude 原生签名思考可在支持的路径重传；
+跨供应商签名、有状态 Responses、音视频生成、多候选和完整 Agent 循环属于后续范围。
+[协议范围](docs/protocol-matrix.md) 列出具体限制。
 
 软件代码使用 MIT；每份素材的来源和许可独立登记。第三方许可见 [声明](docs/THIRD_PARTY_NOTICES.md)。
 

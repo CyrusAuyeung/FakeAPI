@@ -10,7 +10,8 @@
 | Full supported context to Chat upstream | Implemented | Translated | Translated | Translated |
 | Image metadata/input | Parsed; AI capability required | Same | Same | Same |
 | Simulated native reasoning | `reasoning_content` extension | summary item/events | Portable fallback | thought part |
-| Signed/encrypted reasoning | Unsupported | Unsupported | Unsupported | Unsupported |
+| Plain reasoning history | Extension; target preserve/omit/reject | Unsigned summary replay | Native blocks below | Unsigned thought replay |
+| Signed/encrypted reasoning | Cross-provider unsupported | Encrypted state unsupported | Claude native signed/redacted replay | Signatures unsupported |
 | Stateful/background Responses | — | Unsupported | — | — |
 | Audio/video, multiple choices, tool execution | Unsupported | Unsupported | Unsupported | Unsupported |
 
@@ -41,5 +42,12 @@ Native Chat reasoning is an extension, not an official universal field.
 Untranslatable upstream reasoning is omitted across protocols by default, with
 `X-FakeAPI-Reasoning: omitted-in-translation`. Portable upstream reasoning can
 be explicitly configured except where JSON or strict tool constraints prevent it.
+
+Native Claude Messages uses its own upstream adapter. On an Anthropic-to-Claude
+path, thinking/signature and redacted blocks are returned and replayed without
+changing their contents/order. Streaming thinking blocks are buffered until the
+signature is complete; text remains incremental. Visible/reasoning token splits
+for Claude are estimates within provider totals. Four-protocol generation/display
+controls and model-specific restrictions are described in [provider setup](providers.md).
 
 Sources and later contract corrections are in `docs/decisions/001-scope.md`.

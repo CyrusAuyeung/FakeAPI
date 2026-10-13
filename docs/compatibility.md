@@ -31,7 +31,8 @@ SDK 中的工具测试不执行外部工具，也不开启自动工具循环。
   usage 统一估算，响应头包含 `X-FakeAPI-Usage: estimated`。
 - Responses 使用客户端重传上下文；有状态/后台/加密 reasoning 暂缓。
 - SDK helper 的 `parsed`/`parsed_arguments` 仅作为经过一致性验证的重传注解。
-- Chat 历史中的空 `reasoning_content`（null/空字符串）可重传；非空值仍显式拒绝。
+- `alpha.2` 起，Chat assistant 的非空 `reasoning_content` 也可重传，并按目标处理；普通 summary/thought 注解可重传。
+- Claude 原生路径保留原始签名/脱敏思考块；跨供应商签名和加密状态仍拒绝，见 [平台模板](providers.md)。
 - Gemini 使用 data-only SSE，结束时发送 finishReason/usage，再关闭流。
   不发送 `[DONE]` 或注释心跳。中途失败不发送成功终片；消费方应同时检查
   结束原因，全部 SDK 中途错误表现仍需补齐专项记录。

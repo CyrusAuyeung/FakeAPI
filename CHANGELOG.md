@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-alpha.2 — 2026-10-13
+
+- Assistant `reasoning_content` replay, unsigned Responses summaries and Gemini thoughts no longer break ordinary multi-turn conversations.
+- Four-protocol reasoning generation and display controls; unsupported settings reject before upstream calls/quota admission.
+- Six hybrid initialization templates: DeepSeek, GPT, Claude, Gemini, GLM and Kimi, with explicit per-model capabilities.
+- Native Claude Messages upstream, signed/redacted thinking replay and bounded JSON/SSE lifecycle/error handling.
+- Provider contract matrix, native-thinking client continuation and opt-in bounded DeepSeek live acceptance.
+
 ## 0.5.0-alpha.1 — 2026-10-12
 
 - First development preview with five portable archives and tagged container publication.

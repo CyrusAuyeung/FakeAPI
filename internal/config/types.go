@@ -205,6 +205,15 @@ type Target struct {
 	MaxTokensParameter    string       `yaml:"max_tokens_parameter"`
 	DeveloperRoleFallback string       `yaml:"developer_role_fallback"`
 	Capabilities          Capabilities `yaml:"capabilities"`
+	Reasoning             Reasoning    `yaml:"reasoning,omitempty"`
+}
+type Reasoning struct {
+	Mode           string   `yaml:"mode,omitempty"`
+	History        string   `yaml:"history,omitempty"`
+	AllowedEfforts []string `yaml:"allowed_efforts,omitempty"`
+	DefaultEffort  string   `yaml:"default_effort,omitempty"`
+	CanDisable     *bool    `yaml:"can_disable,omitempty"`
+	Budget         bool     `yaml:"budget,omitempty"`
 }
 type Capabilities struct {
 	Images                     bool `yaml:"images"`

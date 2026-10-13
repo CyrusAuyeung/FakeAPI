@@ -1,0 +1,50 @@
+# Provider overlay for init --template gemini; inherits hybrid rules and assets.
+# API fields checked 2026-10-13: https://ai.google.dev/gemini-api/docs/openai
+# Credentials are environment references. Change both model targets when needed.
+upstreams:
+  primary:
+    kind: openai_chat
+    base_url: 'https://generativelanguage.googleapis.com/v1beta/openai'
+    api_key_env: FAKEAPI_UPSTREAM_API_KEY
+    max_concurrent: 4
+    timeouts: {connect: 5s, first_event: 30s, idle: 30s, total: 120s}
+    reasoning_translation: omit
+targets:
+  primary-fast:
+    upstream: primary
+    model: 'gemini-3.8-flash'
+    max_tokens_parameter: max_tokens
+    developer_role_fallback: system
+    capabilities:
+      images: false
+      tools: false
+      json_object: true
+      json_schema: true
+      developer_role: false
+      parallel_tool_calls_parameter: false
+    reasoning:
+      mode: google
+      history: omit
+      allowed_efforts: [minimal, low, medium, high]
+      default_effort: low
+      can_disable: false
+      budget: false
+  primary-quality:
+    upstream: primary
+    model: 'gemini-3.8-flash'
+    max_tokens_parameter: max_tokens
+    developer_role_fallback: system
+    capabilities:
+      images: false
+      tools: false
+      json_object: true
+      json_schema: true
+      developer_role: false
+      parallel_tool_calls_parameter: false
+    reasoning:
+      mode: google
+      history: omit
+      allowed_efforts: [minimal, low, medium, high]
+      default_effort: low
+      can_disable: false
+      budget: false

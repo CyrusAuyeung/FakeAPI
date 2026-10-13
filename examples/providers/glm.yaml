@@ -1,0 +1,50 @@
+# Provider overlay for init --template glm; inherits hybrid rules and assets.
+# API fields checked 2026-10-13: https://docs.z.ai/api-reference/llm/chat-completion
+# Credentials are environment references. Change both model targets when needed.
+upstreams:
+  primary:
+    kind: openai_chat
+    base_url: 'https://api.z.ai/api/paas/v4'
+    api_key_env: FAKEAPI_UPSTREAM_API_KEY
+    max_concurrent: 4
+    timeouts: {connect: 5s, first_event: 30s, idle: 30s, total: 120s}
+    reasoning_translation: omit
+targets:
+  primary-fast:
+    upstream: primary
+    model: 'glm-5.2'
+    max_tokens_parameter: max_tokens
+    developer_role_fallback: system
+    capabilities:
+      images: false
+      tools: true
+      json_object: true
+      json_schema: false
+      developer_role: false
+      parallel_tool_calls_parameter: false
+    reasoning:
+      mode: thinking_effort
+      history: preserve
+      allowed_efforts: [none, minimal, low, medium, high, xhigh, max]
+      default_effort: high
+      can_disable: true
+      budget: false
+  primary-quality:
+    upstream: primary
+    model: 'glm-5.2'
+    max_tokens_parameter: max_tokens
+    developer_role_fallback: system
+    capabilities:
+      images: false
+      tools: true
+      json_object: true
+      json_schema: false
+      developer_role: false
+      parallel_tool_calls_parameter: false
+    reasoning:
+      mode: thinking_effort
+      history: preserve
+      allowed_efforts: [none, minimal, low, medium, high, xhigh, max]
+      default_effort: high
+      can_disable: true
+      budget: false

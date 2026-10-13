@@ -471,6 +471,40 @@
       },
       "type": "object"
     },
+    "Reasoning": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_efforts": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "budget": {
+          "type": "boolean"
+        },
+        "can_disable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "default_effort": {
+          "type": "string"
+        },
+        "history": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "RequestLog": {
       "additionalProperties": false,
       "properties": {
@@ -610,6 +644,9 @@
               "type": "object"
             }
           ]
+        },
+        "reasoning": {
+          "$ref": "#/$defs/Reasoning"
         },
         "upstream": {
           "type": "string"

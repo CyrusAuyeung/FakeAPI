@@ -9,11 +9,11 @@ import zipfile
 import re
 
 root = Path(__file__).resolve().parents[1]
-version = os.environ.get('GITHUB_REF_NAME', '0.5.0-alpha.1').removeprefix('v')
+version = os.environ.get('GITHUB_REF_NAME', '0.5.0-alpha.2').removeprefix('v')
 if not re.fullmatch(r'\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?', version):
     if os.environ.get('GITHUB_REF', '').startswith('refs/tags/'):
         raise SystemExit('Release tag must use a semantic version.')
-    version = '0.5.0-alpha.1'
+    version = '0.5.0-alpha.2'
 commit = os.environ.get('GITHUB_SHA', 'unknown')
 output = root / 'bin/releases'
 output.mkdir(parents=True, exist_ok=True)

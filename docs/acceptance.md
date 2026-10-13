@@ -27,6 +27,10 @@ Linux 的 `scripts/measure-performance.py` 上传 [性能观察](performance.md)
 - 一致数据库备份、重启后额度和撤销状态持久化。
 - 请求日志恰好四字段，不含测试正文或原始 Key。
 
+Go HTTP 契约测试还覆盖六平台模板的四协议 JSON/SSE、思考控制、签名历史、
+隐藏显示不关闭生成、不支持的设置不调用上游/不扣额度，以及思考后的本地字符画。
+Claude 原生适配另测超时、认证失败、错误事件、块顺序、签名缺失和流提前结束。
+
 容器验收使用仓库的 `compose.yaml`，另外检查非 root 用户、只读根目录、
 只读配置、可写数据卷、删除全部 Linux capabilities 和 no-new-privileges。
 每次使用独立 Compose project 和临时端口，结束后只删除本次创建的容器和数据卷。

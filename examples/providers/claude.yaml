@@ -1,0 +1,50 @@
+# Provider overlay for init --template claude; inherits hybrid rules and assets.
+# API fields checked 2026-10-13: https://platform.claude.com/docs/en/api/messages/create
+# Credentials are environment references. Change both model targets when needed.
+upstreams:
+  primary:
+    kind: anthropic
+    base_url: 'https://api.anthropic.com/v1'
+    api_key_env: FAKEAPI_UPSTREAM_API_KEY
+    max_concurrent: 4
+    timeouts: {connect: 5s, first_event: 30s, idle: 30s, total: 120s}
+    reasoning_translation: omit
+targets:
+  primary-fast:
+    upstream: primary
+    model: 'claude-sonnet-4-6'
+    max_tokens_parameter: max_tokens
+    developer_role_fallback: system
+    capabilities:
+      images: false
+      tools: true
+      json_object: false
+      json_schema: false
+      developer_role: false
+      parallel_tool_calls_parameter: false
+    reasoning:
+      mode: anthropic
+      history: preserve
+      allowed_efforts: [none, low, medium, high, max]
+      default_effort: medium
+      can_disable: true
+      budget: true
+  primary-quality:
+    upstream: primary
+    model: 'claude-sonnet-4-6'
+    max_tokens_parameter: max_tokens
+    developer_role_fallback: system
+    capabilities:
+      images: false
+      tools: true
+      json_object: false
+      json_schema: false
+      developer_role: false
+      parallel_tool_calls_parameter: false
+    reasoning:
+      mode: anthropic
+      history: preserve
+      allowed_efforts: [none, low, medium, high, max]
+      default_effort: medium
+      can_disable: true
+      budget: true

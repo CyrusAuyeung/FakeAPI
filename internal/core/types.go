@@ -43,6 +43,7 @@ type Part struct {
 	Name      string
 	Arguments json.RawMessage
 	Opaque    bool
+	Signature string
 }
 type Message struct {
 	Role        string
@@ -79,8 +80,19 @@ type Request struct {
 	Stop         []string
 	IncludeUsage bool
 	ThinkingOff  bool
+	Reasoning    Reasoning
 	Parameters   map[string]any
 	Extras       map[string]any
+}
+
+// Reasoning separates generation controls from whether a client displays them.
+// A nil field preserves the upstream's default instead of inventing a setting.
+type Reasoning struct {
+	Enabled  *bool
+	Effort   string
+	Budget   *int
+	Include  *bool
+	Adaptive bool
 }
 
 func Normalize(s string) string {
@@ -146,6 +158,7 @@ type Result struct {
 	ID        string
 	Text      string
 	Reasoning string
+	Thinking  []Part
 	Tool      *ToolCall
 	Usage     Usage
 	Finish    string
@@ -155,6 +168,7 @@ type Event struct {
 	Kind   string
 	Text   string
 	Tool   *ToolCall
+	Part   *Part
 	Usage  Usage
 	Finish string
 	Stop   string

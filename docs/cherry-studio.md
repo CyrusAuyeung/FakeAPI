@@ -41,7 +41,8 @@ Cherry Studio 2.1.6 会把独立推理内容放入“处理过程”区域，完
 **Processed** 展开或收起，其中显示 **Deep reasoning**。
 [原生通道录制验收](https://github.com/CyrusAuyeung/FakeAPI/actions/runs/38286857661)
 已检查实际字段、独立显示、折叠/展开和流式字符画。
-这一记录覆盖单次回复的展示；非空 `reasoning_content` 的历史回传仍显式拒绝。
+这一录制记录覆盖单次展示。`alpha.2` 起，API 接受非空 assistant 推理历史；
+客户端验收另外增加了原生思考回复后的下一轮聊天。
 
 ## 自动验收范围
 
@@ -75,7 +76,7 @@ Provider 添加界面的每个控件、模型自动发现、Windows/macOS 桌面
 
 ## 已处理的互操作细节
 
-- Chat 可以返回独立 `reasoning_content`；历史中的空注解可重传，非空值仍显式拒绝。
+- Chat 可以返回独立 `reasoning_content`；`alpha.2` 起非空 assistant 注解也可重传，并按目标处理。
 - Gemini `safetySettings` 按[官方字段定义](https://ai.google.dev/api/generate-content#SafetySetting)
   校验后可用于本地预设。本地预设不运行供应商过滤器；带非空原生设置的 Chat 上游转发会明确拒绝。
 - 客户端对新建本地 Provider 的回退标签可能记录缺少翻译的告警。

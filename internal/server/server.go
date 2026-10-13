@@ -320,7 +320,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 	if !isAI || p == core.Anthropic && r.Stream {
 		w.Header().Set("X-FakeAPI-Usage", "estimated")
 	}
-	if isAI && p != core.Chat && u.ReasoningTranslation == "omit" {
+	if isAI && p != core.Chat && !(u.Kind == "anthropic" && p == core.Anthropic) && u.ReasoningTranslation == "omit" {
 		w.Header().Set("X-FakeAPI-Reasoning", "omitted-in-translation")
 	}
 	emit := func(event core.Event) error {
@@ -331,6 +331,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			return wire.Emit(event)
 		}
 		switch event.Kind {
+		case "thinking_block":
+			if event.Part != nil {
+				aggregated.Thinking = append(aggregated.Thinking, *event.Part)
+			}
 		case "text_delta":
 			aggregated.Text += event.Text
 		case "reasoning_delta":

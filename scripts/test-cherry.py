@@ -38,6 +38,14 @@ def main():
                                 '  when: {matchers_any: [client-cancel]}\n'
                                 '  action: {type: preset, text: ' + json.dumps(wave * 4) + '}\n'
                                 '  behavior: {profile: natural, thinking: {enabled: false}}\n', 1)
+        if os.environ.get('FAKEAPI_SHOWCASE') != '1' and os.environ.get('FAKEAPI_RECORD_STREAM') != '1':
+            source = source.replace('matchers:\n', 'matchers:\n  client-native:\n    any:\n    - {exact: /client/native}\n', 1)
+            source = source.replace('rules:\n', 'rules:\n- id: client-native\n  enabled: true\n  priority: 2100\n'
+                                    '  when: {matchers_any: [client-native]}\n'
+                                    '  action: {type: preset, asset: nailong-wave}\n'
+                                    '  behavior:\n    profile: instant\n'
+                                    '    thinking: {enabled: true, channel: native, text_asset: thinking-natural}\n'
+                                    '    timing: {graphemes_per_second: 1000, chunk_size: 16, max_total: 10s}\n', 1)
         config.write_text(source, encoding='utf-8', newline='\n')
         backend.cli('config', 'check')
         created = json.loads(backend.cli('keys', 'create', '--policy', 'test', '--format', 'json', '--max-concurrent', '1'))

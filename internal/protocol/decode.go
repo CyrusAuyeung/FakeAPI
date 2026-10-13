@@ -236,7 +236,26 @@ func textParts(v any, mode string) ([]core.Part, *core.Error) {
 			}
 			out = append(out, core.Part{Kind: "tool_result", ID: str(b["tool_use_id"]), Text: strings.Join(texts, "\n"), Opaque: opaque})
 		case "thinking", "redacted_thinking":
-			out = append(out, core.Part{Kind: "reasoning", Text: str(b["thinking"]), Opaque: true})
+			if typ == "thinking" {
+				if e := fields(b, "type thinking signature", "thinking."); e != nil {
+					return nil, e
+				}
+				text, ok := b["thinking"].(string)
+				sig, valid := b["signature"].(string)
+				if !ok || !valid || sig == "" {
+					return nil, core.Invalid("thinking")
+				}
+				out = append(out, core.Part{Kind: "thinking", Text: text, Signature: sig, Opaque: true})
+			} else {
+				if e := fields(b, "type data", "redacted_thinking."); e != nil {
+					return nil, e
+				}
+				data, ok := b["data"].(string)
+				if !ok || data == "" {
+					return nil, core.Invalid("redacted_thinking")
+				}
+				out = append(out, core.Part{Kind: "redacted_thinking", Data: data, Opaque: true})
+			}
 		default:
 			return nil, core.Invalid("content.type")
 		}
@@ -311,6 +330,9 @@ func Decode(p core.Protocol, reader io.Reader, pathModel string, pathStream bool
 	}
 	if e != nil {
 		return nil, e
+	}
+	if r.Reasoning.Enabled != nil && (r.Reasoning.Effort == "none" && *r.Reasoning.Enabled || r.Reasoning.Effort != "" && r.Reasoning.Effort != "none" && !*r.Reasoning.Enabled) {
+		return nil, core.Invalid("reasoning.conflicting_controls")
 	}
 	if r.Model == "" {
 		return nil, core.Invalid("model")
@@ -398,6 +420,7 @@ func reasoningEffort(v any, r *core.Request) *core.Error {
 	switch effort {
 	case "none", "minimal", "low", "medium", "high", "xhigh", "max":
 		r.Parameters["reasoning_effort"] = effort
+		r.Reasoning.Effort = effort
 		r.ThinkingOff = effort == "none"
 		return nil
 	default:
@@ -545,12 +568,10 @@ func decodeChat(b map[string]any, r *core.Request) *core.Error {
 		if e := fields(m, "role content name tool_call_id tool_calls refusal reasoning_content", "messages."); e != nil {
 			return e
 		}
-		// Desktop clients may replay an empty response extension on ordinary
-		// assistant messages. It carries no content; meaningful reasoning is
-		// still rejected rather than silently discarded during translation.
+		// Keep assistant reasoning separate from text and latest-user matching.
 		if value := m["reasoning_content"]; value != nil {
 			text, ok := value.(string)
-			if !ok || text != "" {
+			if !ok || text != "" && str(m["role"]) != "assistant" {
 				return core.Invalid("messages.reasoning_content")
 			}
 		}
@@ -559,12 +580,15 @@ func decodeChat(b map[string]any, r *core.Request) *core.Error {
 			return core.Invalid("messages.role")
 		}
 		message := core.Message{Role: role, SourceIndex: i}
+		if text := str(m["reasoning_content"]); text != "" {
+			message.Parts = append(message.Parts, core.Part{Kind: "reasoning", Text: text})
+		}
 		if m["content"] != nil {
 			parts, e := textParts(m["content"], "chat")
 			if e != nil {
 				return e
 			}
-			message.Parts = parts
+			message.Parts = append(message.Parts, parts...)
 		} else if role != "assistant" {
 			return core.Invalid("messages.content")
 		}
@@ -634,6 +658,9 @@ func decodeResponses(b map[string]any, r *core.Request) *core.Error {
 	if e := params(b, r, "max_output_tokens", "__no_stop"); e != nil {
 		return e
 	}
+	if e := responseReasoning(b["reasoning"], r); e != nil {
+		return e
+	}
 	if b["instructions"] != nil {
 		s, ok := b["instructions"].(string)
 		if !ok {
@@ -697,10 +724,29 @@ func decodeResponses(b map[string]any, r *core.Request) *core.Error {
 				}
 				r.Messages = append(r.Messages, core.Message{Role: "tool", SourceIndex: i, Parts: []core.Part{{Kind: "tool_result", ID: str(m["call_id"]), Text: strings.Join(texts, "\n")}}})
 			case "reasoning":
+				if e := fields(m, "type id status summary encrypted_content", "reasoning."); e != nil {
+					return e
+				}
 				if m["encrypted_content"] != nil {
 					return core.Invalid("encrypted_content")
 				}
-				r.Messages = append(r.Messages, core.Message{Role: "assistant", SourceIndex: i, Parts: []core.Part{{Kind: "reasoning", Opaque: true}}})
+				a, e := arrayField(m["summary"], "reasoning.summary")
+				if e != nil {
+					return e
+				}
+				parts := []core.Part{}
+				for _, value := range a {
+					summary := obj(value)
+					if e := fields(summary, "type text", "reasoning.summary."); e != nil {
+						return e
+					}
+					text, ok := summary["text"].(string)
+					if str(summary["type"]) != "summary_text" || !ok {
+						return core.Invalid("reasoning.summary")
+					}
+					parts = append(parts, core.Part{Kind: "reasoning_summary", Text: text})
+				}
+				r.Messages = append(r.Messages, core.Message{Role: "assistant", SourceIndex: i, Parts: parts})
 			default:
 				return core.Invalid("input.type")
 			}
@@ -770,6 +816,9 @@ func decodeAnthropic(b map[string]any, r *core.Request) *core.Error {
 		}
 		only := len(parts) > 0
 		for _, p := range parts {
+			if (p.Kind == "thinking" || p.Kind == "redacted_thinking") && role != "assistant" {
+				return core.Invalid("thinking.role")
+			}
 			if p.Kind == "tool_call" && role != "assistant" || p.Kind == "tool_result" && role != "user" {
 				return core.Invalid("messages.tool_role")
 			}
@@ -826,12 +875,13 @@ func decodeAnthropic(b map[string]any, r *core.Request) *core.Error {
 		if e := format(m["format"], r, false); e != nil {
 			return e
 		}
+		if e := reasoningEffort(m["effort"], r); e != nil {
+			return e
+		}
 	}
-	t, e := objectField(b["thinking"], "thinking")
-	if e != nil {
+	if e := anthropicReasoning(b["thinking"], r); e != nil {
 		return e
 	}
-	r.ThinkingOff = str(t["type"]) == "disabled" || str(t["display"]) == "omitted"
 	return nil
 }
 func decodeGemini(b map[string]any, r *core.Request) *core.Error {
@@ -925,8 +975,10 @@ func decodeGemini(b map[string]any, r *core.Request) *core.Error {
 				}
 				part = core.Part{Kind: "text", Text: s}
 				if scalarBool(p["thought"]) {
-					part.Kind = "reasoning"
-					part.Opaque = true
+					if role != "assistant" {
+						return msg, core.Invalid("thought.role")
+					}
+					part.Kind = "reasoning_summary"
 				}
 			case p["inlineData"] != nil:
 				d := obj(p["inlineData"])
@@ -1154,13 +1206,8 @@ func decodeGemini(b map[string]any, r *core.Request) *core.Error {
 			}
 		}
 	}
-	t := obj(g["thinkingConfig"])
-	if v, ok := t["includeThoughts"]; ok {
-		b, ok := v.(bool)
-		if !ok {
-			return core.Invalid("thinkingConfig.includeThoughts")
-		}
-		r.ThinkingOff = !b
+	if e := geminiReasoning(g["thinkingConfig"], r); e != nil {
+		return e
 	}
 	return nil
 }

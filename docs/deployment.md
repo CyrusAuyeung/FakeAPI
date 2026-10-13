@@ -60,7 +60,7 @@ GHCR image with repository token permissions. Workflow dispatch only builds.
 No GitHub repository or published release is created by local development.
 
 For a published image, use the archive's `compose.yaml` with an explicit image tag,
-e.g. `FAKEAPI_IMAGE=ghcr.io/cyrusauyeung/fakeapi:v0.5.0-alpha.1`.
+e.g. `FAKEAPI_IMAGE=ghcr.io/cyrusauyeung/fakeapi:v0.5.0-alpha.2`.
 Initialize `runtime/` using that image's `init --shared-config`, create a Key,
 and run `docker compose up --no-build -d`. Source `docker compose build` requires
 the source checkout; portable archives contain the executable and deployment configuration.
